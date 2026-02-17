@@ -1,12 +1,12 @@
 /* ==========================================
-   XOTT CORE v12.1 (Fixed Loading + Lampa Emulator)
+   XOTT CORE v13.0 (Real Plugin Integration)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- 1. LAMPA KERNEL EMULATION (THE MAGIC) ---
+// --- 1. LAMPA KERNEL EMULATION (ENHANCED) ---
 window.Lampa = {
     Manifest: { app_digital: 300, version: '1.0.0' },
     Storage: {
@@ -14,13 +14,35 @@ window.Lampa = {
         set: (k, v) => localStorage.setItem('lampa_'+k, JSON.stringify(v)),
         field: (k) => 'tmdb', cache: (k, t, d) => d
     },
-    Activity: { active: () => ({ card: window.currentMovieData, component: () => ({}) }), push: ()=>{}, replace: ()=>{} },
+    Activity: { 
+        active: () => ({ 
+            card: window.currentMovieData, 
+            component: () => ({})
+        }), 
+        push: ()=>{}, replace: ()=>{} 
+    },
     Component: { add: ()=>{}, get: ()=>({}) },
-    Player: { play: (d) => { console.log('Lampa.Player:', d); playMovie('custom', d.url); }, playlist: ()=>{} },
+    // ПЕРЕХОПЛЕННЯ ЗАПУСКУ ВІДЕО ВІД ПЛАГІНА
+    Player: { 
+        play: (d) => { 
+            console.log('Plugin playing:', d); 
+            playMovie('custom', d.url); 
+        }, 
+        playlist: (p) => { 
+            console.log('Plugin playlist:', p);
+            if(p && p[0]) playMovie('custom', p[0].url);
+        } 
+    },
     Platform: { is: (n) => n === 'web', get: () => 'web' },
     Utils: { uid: () => 'xott-' + Math.random(), hash: (s) => btoa(s), putScriptAsync: (u, c) => { if(!Array.isArray(u)) u=[u]; let k=0; u.forEach(x=>{ let s=document.createElement('script'); s.src=x; s.onload=()=>{if(++k==u.length&&c)c()}; document.head.appendChild(s); }); }, toggleFullScreen: () => !document.fullscreenElement ? document.documentElement.requestFullscreen() : document.exitFullscreen() },
     Network: { silent: (u, s, e) => { fetch(u).then(r=>r.json()).then(s).catch(e); }, timeout: ()=>{} },
-    Listener: { follow: ()=>{}, send: ()=>{} }
+    
+    // ВАЖЛИВО: Система подій для плагінів
+    Listener: { 
+        _ev: {},
+        follow: function(n, c) { (this._ev[n] = this._ev[n] || []).push(c); },
+        send: function(n, d) { (this._ev[n] || []).forEach(c => c(d)); }
+    }
 };
 
 // --- 2. PLUGINS LOADER ---
@@ -49,19 +71,51 @@ function renderCards(d, c, a=false) {
     d.results.forEach(i => {
         if(!i.poster_path) return;
         let el = document.createElement('div'); el.className = 'card'; el.tabIndex = -1;
-        // DATASET FOR PLUGINS & MODAL
         el.dataset.id = i.id; 
         el.dataset.title = i.title || i.name;
-        el.dataset.original_title = i.original_title || i.original_name;
-        el.dataset.year = (i.release_date || i.first_air_date || '').substr(0,4);
         el.dataset.img = IMG_URL + i.poster_path;
-        el.dataset.overview = i.overview;
-        
         el.innerHTML = `<div class="card-img" style="background-image:url('${IMG_URL+i.poster_path}')"><div class="rating-badge">${i.vote_average.toFixed(1)}</div></div><div class="card-title">${i.title||i.name}</div>`;
-        // Pass full object for compatibility
         el.onclick = (e) => { e.stopPropagation(); openModal(i); }; 
         con.appendChild(el);
     });
+}
+
+// --- INTEGRATION: TRIGGER PLUGINS ---
+function openModal(data) {
+    window.currentMovieData = data;
+    const title = data.title || data.name;
+    const poster = data.poster_path ? IMG_URL + data.poster_path : '';
+    const year = (data.release_date || data.first_air_date || '').substr(0,4);
+    const rating = data.vote_average || 0;
+    const descr = data.overview || 'Опису немає.';
+
+    document.getElementById('m-title').innerText = title;
+    document.getElementById('m-poster').style.backgroundImage = `url('${poster}')`;
+    document.getElementById('m-year').innerText = year;
+    document.getElementById('m-rating').innerText = rating;
+    document.getElementById('m-descr').innerText = descr;
+    
+    // КНОПКА "ДИВИТИСЬ" - СПОЧАТКУ НАШ СЕЛЕКТОР
+    document.getElementById('btn-watch').onclick = () => showSources(data);
+
+    document.getElementById('modal').classList.add('active');
+    Controller.currentContext = 'modal';
+    
+    // 🔥 МАГІЯ: ПОВІДОМЛЯЄМО ПЛАГІНАМ ПРО ВІДКРИТТЯ КАРТКИ 🔥
+    // Створюємо фейковий об'єкт active, щоб плагін думав, що це Lampa
+    const activity = {
+        component: function() { return {}; },
+        card: data,
+        id: data.id
+    };
+    
+    // Відправляємо подію 'full' (відкриття повної картки)
+    // Плагіни (Lampac/Online) підписуються на це і починають шукати торренти/онлайн
+    try {
+        window.Lampa.Listener.send('full', { object: activity });
+    } catch(e) { console.error('Plugin error:', e); }
+
+    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
 // --- PLAYER & SOURCES ---
@@ -70,11 +124,10 @@ function showSources(data) {
     const list = document.getElementById('source-list');
     const panel = document.getElementById('source-selector');
     
-    // SOURCES: VidSrc (Lampac Clone) & SuperEmbed
     const sources = [
-        { name: 'VidSrc PRO / Lampac', meta: '⚡ Основний (як на скріні)', id: 'vidsrc_pro' },
-        { name: 'SuperEmbed (Rezka)', meta: '🌍 Резерв (UA/RU)', id: 'superembed' },
-        { name: 'VidSrc.to', meta: '🇬🇧 Eng/Sub', id: 'vidsrc_to' }
+        { name: 'VidSrc PRO / Lampac', meta: '⚡ Основний', id: 'vidsrc_pro' },
+        { name: 'SuperEmbed (Rezka)', meta: '🌍 Резерв', id: 'superembed' },
+        { name: 'VidSrc.to', meta: '🇬🇧 Англ', id: 'vidsrc_to' }
     ];
 
     list.innerHTML = sources.map(s => `
@@ -100,6 +153,11 @@ function playMovie(sourceId, customUrl) {
         if(sourceId === 'vidsrc_to') url = `https://vidsrc.to/embed/movie/${data.id}`;
     }
     
+    // FIX: Якщо плагін дав потік HLS (.m3u8), відкриваємо його через HLS-плеєр
+    if (url.includes('.m3u8')) {
+        url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
+    }
+    
     console.log(`Playing:`, url);
     iframe.src = url;
     document.getElementById('player-overlay').classList.add('active');
@@ -118,31 +176,8 @@ function closePlayer() {
 
 function closeSources() {
     document.getElementById('source-selector').classList.remove('active');
-    Controller.currentContext = document.getElementById('modal').classList.contains('active') ? 'modal' : 'app';
-    Controller.scan(); Controller.focus();
-}
-
-// --- UI HELPERS ---
-function openModal(data) {
-    window.currentMovieData = data; // Save full object
-    // Safe access properties
-    const title = data.title || data.name || 'Без назви';
-    const poster = data.poster_path ? IMG_URL + data.poster_path : '';
-    const year = (data.release_date || data.first_air_date || '').substr(0,4);
-    const rating = data.vote_average || 0;
-    const descr = data.overview || 'Опису немає.';
-
-    document.getElementById('m-title').innerText = title;
-    document.getElementById('m-poster').style.backgroundImage = `url('${poster}')`;
-    document.getElementById('m-year').innerText = year;
-    document.getElementById('m-rating').innerText = rating;
-    document.getElementById('m-descr').innerText = descr;
-    
-    document.getElementById('btn-watch').onclick = () => showSources(data);
-
-    document.getElementById('modal').classList.add('active');
     Controller.currentContext = 'modal';
-    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
+    Controller.scan(); Controller.focus();
 }
 
 function closeModal() {
@@ -153,7 +188,7 @@ function closeModal() {
 
 async function loadMore() { if(Api.isLoading) return; Api.isLoading=true; Api.currentPage++; let d=await Api.loadTrending(Api.currentPage); if(d) renderCards(d,'main-row',true); Api.isLoading=false; Controller.scan(); }
 
-// --- CONTROLLER & INIT ---
+// --- CONTROLLER ---
 const Controller = {
     targets: [], idx: 0, currentContext: 'app',
     scan: function() {
