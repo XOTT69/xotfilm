@@ -5,33 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lampa Zero</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Іконки -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div id="app">
+        <!-- ВЕРХНЯ ПАНЕЛЬ -->
         <div class="head">
-            <div class="logo">Lampa Zero</div>
+            <div class="logo">Lampa <span style="color:#fff">Zero</span></div>
             <div class="menu-items">
-                <div class="menu-btn focus" tabindex="1">Головна</div>
-                <div class="menu-btn" tabindex="2">Пошук</div>
-                <div class="menu-btn" tabindex="3">Налаштування</div>
+                <div class="menu-btn focus" data-action="main">
+                    <i class="fas fa-home"></i> Головна
+                </div>
+                <div class="menu-btn" data-action="search">
+                    <i class="fas fa-search"></i> Пошук
+                </div>
+                <div class="menu-btn" data-action="settings">
+                    <i class="fas fa-cog"></i> Налаштування
+                </div>
+            </div>
+            <div class="time" id="clock">00:00</div>
+        </div>
+
+        <!-- КОНТЕНТ -->
+        <div class="content">
+            <!-- ЕКРАН: ГОЛОВНА -->
+            <div id="screen-main" class="screen active">
+                <h1 class="screen-title">Зараз у тренді</h1>
+                <div class="loader" id="main-loader">Завантаження...</div>
+                <div class="cards-row" id="main-row"></div>
+            </div>
+
+            <!-- ЕКРАН: ПОШУК -->
+            <div id="screen-search" class="screen">
+                <h1 class="screen-title">Пошук фільмів</h1>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Напишіть назву..." class="focusable">
+                    <div class="search-btn focusable" id="do-search">Знайти</div>
+                </div>
+                <div class="cards-row" id="search-results"></div>
+            </div>
+
+            <!-- ЕКРАН: НАЛАШТУВАННЯ -->
+            <div id="screen-settings" class="screen">
+                <h1 class="screen-title">Налаштування</h1>
+                <div class="settings-list">
+                    <div class="settings-item focusable" onclick="alert('TMDB API підключено')">
+                        <span>Джерело даних</span>
+                        <span class="val">TMDB</span>
+                    </div>
+                    <div class="settings-item focusable" onclick="Lampa.Utils.toggleFullScreen()">
+                        <span>На весь екран</span>
+                        <span class="val">Увімк/Вимк</span>
+                    </div>
+                    <div class="settings-item focusable">
+                        <span>Версія ядра</span>
+                        <span class="val">1.0.0 (Zero)</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="content">
-            <h1>Моя бібліотека</h1>
-            <div id="plugin-status" class="status">Очікування плагінів...</div>
-            
-            <div class="cards-row" id="main-row">
-                <!-- Сюди будемо рендерити картки -->
-                <div class="card" tabindex="4">
-                    <div class="card-img"></div>
-                    <div class="card-title">Тестовий фільм</div>
+        <!-- МОДАЛКА (Опис фільму) -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-poster" id="m-poster"></div>
+                <div class="modal-info">
+                    <h2 id="m-title">Назва</h2>
+                    <div class="meta">
+                        <span id="m-year">2024</span> • <span id="m-rating">8.5</span>
+                    </div>
+                    <p id="m-descr">Опис фільму...</p>
+                    <div class="modal-buttons">
+                        <div class="modal-btn focus" id="btn-watch">Дивитись</div>
+                        <div class="modal-btn" onclick="closeModal()">Закрити</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Спочатку вантажимо наше ядро -->
     <script src="core.js"></script>
 </body>
 </html>
