@@ -1,1 +1,72 @@
+body {
+    background-color: #0f1115;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    overflow: hidden; /* Щоб не було скролбарів на ТВ */
+}
+
+.head {
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    background: #161a20;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4b76fb;
+    margin-right: 40px;
+}
+
+.menu-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-right: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* ЦЕ ГОЛОВНЕ ДЛЯ ТВ - Стан фокусу */
+.menu-btn:hover, .menu-btn:focus, .card:hover, .card:focus, .focus {
+    background: #fff;
+    color: #000;
+    transform: scale(1.05);
+    outline: none;
+    box-shadow: 0 0 20px rgba(75, 118, 251, 0.5);
+}
+
+.content {
+    padding: 40px;
+}
+
+.status {
+    color: #888;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.cards-row {
+    display: flex;
+    gap: 20px;
+}
+
+.card {
+    width: 200px;
+    height: 300px;
+    background: #1f232b;
+    border-radius: 12px;
+    padding: 10px;
+    transition: transform 0.2s;
+}
+
+.card-img {
+    width: 100%;
+    height: 220px;
+    background: #2a2e38;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
 
