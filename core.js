@@ -1,15 +1,12 @@
 /* ==========================================
-   XOTT CORE v9.0 (Real Voiceover Parser - Kodik API)
+   XOTT CORE v10.0 (Stable Multi-Source)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// KODIK API TOKEN (Публічний токен для тестів, краще знайти свій)
-const KODIK_TOKEN = '4ef0d7355d9ffb5151e987d643ac7f44'; 
-
-// --- BASIC SETUP ---
+// --- PLUGINS SYSTEM ---
 const Plugins={list:JSON.parse(localStorage.getItem('xott_plugins')||'[]'),init:function(){this.list.forEach(u=>Utils.putScriptAsync(u));this.renderList()},add:function(u){if(!u||this.list.includes(u))return;this.list.push(u);localStorage.setItem('xott_plugins',JSON.stringify(this.list));Utils.putScriptAsync(u);this.renderList()},renderList:function(){const b=document.getElementById('plugins-list');if(b)b.innerHTML=this.list.map(u=>`<div class="plugin-item">${u}</div>`).join('')}};
 const Listener={_ev:{},follow(n,c){(this._ev[n]=this._ev[n]||[]).push(c)},send(n,d){(this._ev[n]||[]).forEach(c=>c(d))}};
 const Storage={get:(n,d)=>localStorage.getItem(n)||d,set:(n,v)=>localStorage.setItem(n,v)};
@@ -34,158 +31,79 @@ function renderCards(d,c,a=false){
         el.dataset.year=(i.release_date||i.first_air_date||'').substr(0,4);
         el.dataset.rating=i.vote_average; el.dataset.img=IMG_URL+i.poster_path;
         el.dataset.overview=i.overview;
-        el.dataset.orig=i.original_title || i.original_name; // Для пошуку в Kodik
+        el.dataset.orig=i.original_title || i.original_name;
         el.innerHTML=`<div class="card-img" style="background-image:url('${IMG_URL+i.poster_path}')"><div class="rating-badge">${i.vote_average.toFixed(1)}</div></div><div class="card-title">${i.title||i.name}</div>`;
         el.onclick=(e)=>{e.stopPropagation();openModal(el.dataset)};
         con.appendChild(el);
     });
 }
 
-// --- VOICE PARSER (KODIK) ---
-async function findVoiceovers(title, year) {
-    // Шукаємо фільм в базі Kodik
-    const url = `https://kodikapi.com/search?token=${KODIK_TOKEN}&title=${encodeURIComponent(title)}&year=${year}&with_material_data=true`;
-    // Використовуємо проксі, бо Kodik блокує прямі запити з браузера (CORS)
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-    
-    try {
-        const res = await fetch(proxyUrl);
-        const data = await res.json();
-        
-        if (!data.results || data.results.length === 0) return [];
-        
-        // Фільтруємо унікальні переклади
-        const voices = [];
-        const seen = new Set();
-        
-        data.results.forEach(item => {
-            const translation = item.translation;
-            if (translation && !seen.has(translation.id)) {
-                seen.add(translation.id);
-                voices.push({
-                    id: translation.id,
-                    title: translation.title, // "DniproFilm", "LostFilm"
-                    type: translation.type, // "voice", "subtitles"
-                    link: item.link, // Посилання на плеєр з цією озвучкою
-                    quality: item.quality || 'HD'
-                });
-            }
-        });
-        
-        // Сортуємо: Українські (якщо є в назві) -> Інші
-        return voices.sort((a, b) => {
-            const aUa = a.title.toLowerCase().includes('ukr') || a.title.toLowerCase().includes('укр');
-            const bUa = b.title.toLowerCase().includes('ukr') || b.title.toLowerCase().includes('укр');
-            if (aUa && !bUa) return -1;
-            if (!aUa && bUa) return 1;
-            return 0;
-        });
-        
-    } catch (e) {
-        console.error('Kodik Error:', e);
-        return [];
-    }
-}
-
-// --- SOURCE UI ---
-async function showSources(data) {
+// --- SOURCE SELECTOR UI ---
+function showSources(data) {
     window.currentMovieData = data;
     const list = document.getElementById('source-list');
     const panel = document.getElementById('source-selector');
     
-    list.innerHTML = '<div class="loader">Шукаю озвучки...</div>';
-    panel.classList.add('active');
-    Controller.currentContext = 'sources';
+    // ФОРМУЄМО СПИСОК СТАБІЛЬНИХ ДЖЕРЕЛ
+    // Ми прибрали Ashdi і Kodik (через помилки)
+    // Залишили тільки те, що працює через iframe
     
-    // 1. Отримуємо озвучки з Kodik
-    const voices = await findVoiceovers(data.title, data.year); // Шукаємо за укр назвою
-    let voicesOrig = [];
-    if (voices.length === 0) {
-        // Якщо за укр не знайшло, шукаємо за оригінальною
-        voicesOrig = await findVoiceovers(data.orig, data.year);
-    }
-    
-    const allVoices = [...voices, ...voicesOrig];
-    
-    // Формуємо список HTML
-    let html = '';
-    
-    // Спочатку реальні озвучки
-    if (allVoices.length > 0) {
-        html += `<div style="padding:10px; color:#888; font-size:12px">ЗНАЙДЕНО В KODIK (${allVoices.length}):</div>`;
-        html += allVoices.map(v => `
-            <div class="source-item focusable" onclick="playKodik('${v.link}')">
-                <div style="display:flex; justify-content:space-between">
-                    <div class="source-name">${v.title}</div>
-                    <div style="background:#444; padding:2px 5px; border-radius:3px; font-size:10px">${v.quality}</div>
-                </div>
-                <div class="source-meta">Kodik Player • ${v.type === 'voice' ? 'Озвучка' : 'Субтитри'}</div>
-            </div>
-        `).join('');
-    } else {
-         html += `<div style="padding:20px; text-align:center; color:#666">Озвучок в Kodik не знайдено.<br>Спробуйте універсальні плеєри:</div>`;
-    }
-
-    // Додаємо універсальні джерела (якщо конкретну озвучку не знайшли)
-    const backupSources = [
-        { name: 'VidSrc (Multi-Lang)', meta: 'Автоматичний підбір', id: 'vidsrc' },
-        { name: 'SuperEmbed (Rezka)', meta: 'Резерв', id: 'superembed' },
-        { name: 'Ashdi (UA)', meta: 'Відкрити в новому вікні', id: 'ashdi' }
+    const sources = [
+        { 
+            name: 'SuperEmbed (Rezka/Filmix)', 
+            meta: '⚡ Рекомендовано • 1080p • Вибір озвучки всередині плеєра', 
+            id: 'superembed' 
+        },
+        { 
+            name: 'VidSrc.to', 
+            meta: '🇬🇧 English / Subtitles • Стабільний', 
+            id: 'vidsrc' 
+        },
+        { 
+            name: '2Embed (Backup)', 
+            meta: 'Резервний варіант', 
+            id: '2embed' 
+        }
     ];
 
-    html += `<div style="padding:10px; color:#888; font-size:12px; margin-top:10px">УНІВЕРСАЛЬНІ ПЛЕЄРИ:</div>`;
-    html += backupSources.map(s => `
+    list.innerHTML = sources.map(s => `
         <div class="source-item focusable" onclick="playMovie('${s.id}')">
             <div class="source-name">${s.name}</div>
             <div class="source-meta">${s.meta}</div>
         </div>
     `).join('');
 
-    list.innerHTML = html;
-    
-    // Оновлюємо навігацію
+    panel.classList.add('active');
+    Controller.currentContext = 'sources';
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
-}
-
-function playKodik(url) {
-    // Kodik посилання виглядає як //kodik.info/video/...
-    // Нам треба додати https:
-    if (url.startsWith('//')) url = 'https:' + url;
-    
-    // Відкриваємо в iframe
-    const playerOverlay = document.getElementById('player-overlay');
-    const iframe = document.getElementById('video-frame');
-    
-    console.log('Playing Kodik:', url);
-    iframe.src = url;
-    playerOverlay.classList.add('active');
-    
-    document.getElementById('source-selector').classList.remove('active');
-    Controller.currentContext = 'player';
-    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
-}
-
-function closeSources() {
-    document.getElementById('source-selector').classList.remove('active');
-    Controller.currentContext = document.getElementById('modal').classList.contains('active') ? 'modal' : 'app';
-    Controller.scan(); Controller.focus();
 }
 
 function playMovie(sourceId) {
     const data = window.currentMovieData;
-    if(sourceId === 'ashdi') { window.open(`https://ashdi.vip/vod/search?title=${encodeURIComponent(data.title)}`, '_blank'); return; }
-
     const playerOverlay = document.getElementById('player-overlay');
     const iframe = document.getElementById('video-frame');
     let url = '';
 
     switch(sourceId) {
-        case 'vidsrc': url = `https://vidsrc.to/embed/movie/${data.id}`; break;
-        case 'superembed': url = `https://multiembed.mov/?video_id=${data.id}&tmdb=1`; break;
+        case 'superembed':
+            // Це найкращий агрегатор зараз. Він перебирає Voidboost/Rezka.
+            // Якщо є ID - використовує його, якщо ні - шукає.
+            url = `https://multiembed.mov/?video_id=${data.id}&tmdb=1`;
+            break;
+            
+        case 'vidsrc': 
+            url = `https://vidsrc.to/embed/movie/${data.id}`; 
+            break;
+            
+        case '2embed': 
+            url = `https://www.2embed.cc/embed/${data.id}`; 
+            break;
     }
     
+    console.log(`Playing [${sourceId}]:`, url);
     iframe.src = url;
     playerOverlay.classList.add('active');
+    
     document.getElementById('source-selector').classList.remove('active');
     Controller.currentContext = 'player';
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
@@ -199,7 +117,13 @@ function closePlayer() {
     Controller.scan(); Controller.focus();
 }
 
-// --- HELPERS & CONTROLLER ---
+function closeSources() {
+    document.getElementById('source-selector').classList.remove('active');
+    Controller.currentContext = document.getElementById('modal').classList.contains('active') ? 'modal' : 'app';
+    Controller.scan(); Controller.focus();
+}
+
+// --- HELPERS ---
 function openModal(data) {
     window.currentMovieData = data;
     document.getElementById('m-title').innerText = data.title;
@@ -207,7 +131,10 @@ function openModal(data) {
     document.getElementById('m-year').innerText = data.year;
     document.getElementById('m-rating').innerText = data.rating;
     document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
+    
+    // КНОПКА ВІДКРИВАЄ МЕНЮ ДЖЕРЕЛ
     document.getElementById('btn-watch').onclick = () => showSources(data);
+
     document.getElementById('modal').classList.add('active');
     Controller.currentContext = 'modal';
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
@@ -219,6 +146,7 @@ function closeModal() {
 }
 async function loadMore() { if(Api.isLoading)return; Api.isLoading=true; Api.currentPage++; let d=await Api.loadTrending(Api.currentPage); if(d)renderCards(d,'main-row',true); Api.isLoading=false; Controller.scan(); }
 
+// --- CONTROLLER ---
 const Controller={
     targets:[],idx:0,currentContext:'app',
     scan:function(){
