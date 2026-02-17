@@ -7,75 +7,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
-        body {
-            background-color: #0b0d11;
-            color: #e0e0e0;
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            user-select: none;
-        }
-
-        /* HEADER */
-        .head {
-            height: 80px;
-            padding: 0 50px;
-            display: flex;
-            align-items: center;
-            background: linear-gradient(180deg, rgba(20,24,32,0.95) 0%, rgba(20,24,32,0) 100%);
-            position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-        }
+        body { background-color: #0b0d11; color: #e0e0e0; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; user-select: none; }
+        .head { height: 80px; padding: 0 50px; display: flex; align-items: center; background: linear-gradient(180deg, rgba(20,24,32,0.95) 0%, rgba(20,24,32,0) 100%); position: fixed; top: 0; left: 0; right: 0; z-index: 10; }
         .logo { font-size: 32px; font-weight: 800; color: #4b76fb; margin-right: 60px; text-shadow: 0 0 20px rgba(75, 118, 251, 0.4); }
         .menu-items { display: flex; gap: 15px; }
         .time { margin-left: auto; font-size: 20px; font-weight: 600; opacity: 0.7; }
-        .menu-btn {
-            padding: 12px 24px; border-radius: 12px; font-weight: 600; color: #aaa;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); border: 2px solid transparent;
-        }
+        .menu-btn { padding: 12px 24px; border-radius: 12px; font-weight: 600; color: #aaa; transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); border: 2px solid transparent; }
         .menu-btn i { margin-right: 8px; }
-
-        /* FOCUS STATE */
-        .focus {
-            background: #fff !important; color: #000 !important; transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(255,255,255,0.2); border-color: #fff; z-index: 2;
-        }
-
-        /* CONTENT */
+        .focus { background: #fff !important; color: #000 !important; transform: scale(1.05); box-shadow: 0 10px 30px rgba(255,255,255,0.2); border-color: #fff; z-index: 2; }
         .content { margin-top: 80px; height: calc(100vh - 80px); overflow-y: auto; padding: 20px 50px; box-sizing: border-box; }
         .screen { display: none; padding-bottom: 50px; }
         .screen.active { display: block; animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         .screen-title { font-size: 32px; margin-bottom: 30px; font-weight: 300; border-left: 5px solid #4b76fb; padding-left: 20px; }
-
-        /* CARDS */
         .cards-row { display: flex; flex-wrap: wrap; gap: 25px; padding-top: 10px; }
         .card { width: 170px; flex-shrink: 0; transition: transform 0.2s; position: relative; cursor: pointer; }
-        .card-img {
-            height: 255px; border-radius: 12px; background: #222; background-size: cover; background-position: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5); margin-bottom: 12px;
-        }
+        .card-img { height: 255px; border-radius: 12px; background: #222; background-size: cover; background-position: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5); margin-bottom: 12px; }
         .card-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; padding: 0 5px; }
-        .rating-badge {
-            position: absolute; top: 10px; right: 10px; background: #4b76fb; color: #fff;
-            padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-
-        /* SEARCH */
+        .rating-badge { position: absolute; top: 10px; right: 10px; background: #4b76fb; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
         .search-box { display: flex; gap: 15px; margin-bottom: 40px; max-width: 800px; }
         #search-input { flex: 1; background: #1a1d24; border: 2px solid #333; color: #fff; padding: 18px 25px; border-radius: 12px; font-size: 20px; outline: none; }
         .search-btn { background: #2a2e38; padding: 0 40px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 600; cursor: pointer; }
-
-        /* MODAL (MOVIE INFO) */
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 100; align-items: center; justify-content: center;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 100; align-items: center; justify-content: center; }
         .modal.active { display: flex; animation: fadeIn 0.3s; }
-        .modal-content {
-            background: #161920; width: 800px; padding: 40px; border-radius: 24px; display: flex; gap: 40px;
-            box-shadow: 0 20px 80px rgba(0,0,0,0.8); border: 1px solid #333;
-        }
+        .modal-content { background: #161920; width: 800px; padding: 40px; border-radius: 24px; display: flex; gap: 40px; box-shadow: 0 20px 80px rgba(0,0,0,0.8); border: 1px solid #333; }
         .modal-poster { width: 250px; height: 375px; background: #222; border-radius: 12px; background-size: cover; flex-shrink: 0; }
         .modal-info h2 { font-size: 36px; margin: 0 0 15px 0; line-height: 1.1; }
         .meta { color: #888; font-size: 18px; margin-bottom: 20px; }
@@ -83,37 +38,6 @@
         .modal-buttons { display: flex; gap: 20px; }
         .modal-btn { padding: 15px 40px; background: #2a2e38; border-radius: 10px; font-weight: 600; cursor: pointer; border: 2px solid transparent; }
         #btn-watch.focus { background: #4b76fb !important; color: #fff !important; }
-
-        /* SOURCE SELECTOR (LAMPA STYLE) */
-        .source-selector {
-            position: fixed; top: 0; right: -400px; width: 400px; height: 100%;
-            background: #111; border-left: 1px solid #333; z-index: 200;
-            display: flex; flex-direction: column; padding: 20px; box-sizing: border-box;
-            transition: right 0.3s ease;
-        }
-        .source-selector.active { right: 0; box-shadow: -20px 0 50px rgba(0,0,0,0.8); }
-        .source-title { font-size: 24px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333; }
-        .source-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-        .source-item {
-            padding: 15px; background: #222; border-radius: 8px; cursor: pointer;
-            display: flex; flex-direction: column; gap: 5px; border: 2px solid transparent;
-        }
-        .source-item.focus { background: #fff; color: #000; transform: scale(1.02); }
-        .source-name { font-weight: 700; font-size: 16px; }
-        .source-meta { font-size: 12px; opacity: 0.7; }
-        
-        /* PLAYER OVERLAY */
-        .player-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 300;
-            display: none; flex-direction: column;
-        }
-        .player-overlay.active { display: flex; }
-        #video-frame { flex: 1; width: 100%; height: 100%; border: none; }
-        .player-controls { height: 50px; background: #111; display: flex; align-items: center; padding: 0 20px; }
-        .btn-close { background: #333; padding: 8px 20px; border-radius: 5px; cursor: pointer; color: #fff; font-weight: bold; }
-        .btn-close:hover, .btn-close.focus { background: #d00; }
-
-        /* SETTINGS & PLUGINS */
         .settings-list { max-width: 600px; }
         .settings-group { margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 20px; }
         .plugin-input-box { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -121,8 +45,23 @@
         .btn { padding: 10px 20px; background: #4b76fb; border-radius: 5px; cursor: pointer; font-weight: 600; }
         .plugin-item { padding: 10px; background: #1a1d24; margin-bottom: 5px; border-radius: 5px; font-size: 14px; color: #aaa; }
         .settings-item { display: flex; justify-content: space-between; padding: 20px 30px; background: #1a1d24; margin-bottom: 15px; border-radius: 12px; cursor: pointer; border: 2px solid transparent; }
-        
+        .player-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 300; display: none; flex-direction: column; }
+        .player-overlay.active { display: flex; }
+        #video-frame { flex: 1; width: 100%; height: 100%; border: none; }
+        .player-controls { height: 50px; background: #111; display: flex; align-items: center; padding: 0 20px; }
+        .btn-close { background: #333; padding: 8px 20px; border-radius: 5px; cursor: pointer; color: #fff; font-weight: bold; }
+        .btn-close:hover, .btn-close.focus { background: #d00; }
         .loader { text-align: center; font-size: 20px; color: #666; padding: 50px; }
+        
+        /* FAKE DOM FOR PLUGINS */
+        #lampa-fake-dom { position: absolute; top: -9999px; left: -9999px; visibility: hidden; }
+        /* SOURCE SELECTOR */
+        .source-selector { position: fixed; top: 0; right: -400px; width: 400px; height: 100%; background: #111; border-left: 1px solid #333; z-index: 200; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; transition: right 0.3s ease; }
+        .source-selector.active { right: 0; box-shadow: -20px 0 50px rgba(0,0,0,0.8); }
+        .source-item { padding: 15px; background: #222; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; border: 2px solid transparent; margin-bottom:10px; }
+        .source-item.focus { background: #fff; color: #000; transform: scale(1.02); }
+        .source-name { font-weight: 700; font-size: 16px; }
+        .source-meta { font-size: 12px; opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -185,17 +124,19 @@
                         <div class="modal-btn focus" id="btn-watch">Дивитись</div>
                         <div class="modal-btn" onclick="closeModal()">Закрити</div>
                     </div>
+                    
+                    <!-- FAKE DOM FOR PLUGINS (INSIDE MODAL) -->
+                    <div id="lampa-fake-buttons" class="full-start__buttons" style="display:none"></div>
+                    <div class="view--torrent" style="display:none"></div>
                 </div>
             </div>
         </div>
 
-        <!-- SOURCE SELECTOR (LAMPA STYLE) -->
+        <!-- SOURCE SELECTOR -->
         <div id="source-selector" class="source-selector">
-            <div class="source-title">Виберіть джерело</div>
-            <div class="source-list" id="source-list">
-                <!-- JS will populate this -->
-            </div>
-            <div class="modal-btn focusable" onclick="closeSources()" style="margin-top: 20px; background: #333;">Закрити</div>
+            <div class="source-title" style="margin-bottom:20px;font-size:24px;border-bottom:1px solid #333;padding-bottom:10px">Джерела</div>
+            <div class="source-list" id="source-list"></div>
+            <div class="modal-btn focusable" onclick="closeSources()" style="margin-top:20px;background:#333">Закрити</div>
         </div>
         
         <!-- PLAYER -->
@@ -204,6 +145,13 @@
                 <div class="btn-close focusable" onclick="closePlayer()">Закрити плеєр [Back]</div>
             </div>
             <iframe id="video-frame" src="" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- FAKE DOM CONTAINER FOR GLOBAL PLUGIN ELEMENTS -->
+    <div id="lampa-fake-dom">
+        <div class="activity">
+            <div class="activity__content"></div>
         </div>
     </div>
 
