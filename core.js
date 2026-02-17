@@ -1,12 +1,12 @@
 /* ==========================================
-   XOTT CORE v5.0 (Voiceover Selector + Search Fix)
+   XOTT CORE v6.0 (Stable Iframe Player)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- PLUGINS (Логіка збережена, але UI тепер вбудований) ---
+// --- PLUGINS SYSTEM ---
 const Plugins = {
     list: JSON.parse(localStorage.getItem('xott_plugins') || '[]'),
     init: function() { this.list.forEach(url => Utils.putScriptAsync(url)); this.renderList(); },
@@ -70,48 +70,33 @@ function renderCards(data, containerId, append = false) {
     });
 }
 
-// --- PLAYER SOURCES (Балансери з озвучками) ---
+// --- PLAYER (IFRAME FIX) ---
 function playMovie(data, source) {
     const playerOverlay = document.getElementById('player-overlay');
     const iframe = document.getElementById('video-frame');
-    const title = encodeURIComponent(data.title);
-    const orig = encodeURIComponent(data.orig_title || data.title);
-    const year = data.year;
+    const tmdbId = data.id;
     
     let url = '';
 
-    // ТУТ НАЙВАЖЛИВІШЕ:
-    // Voidboost і Kodik мають вбудований перемикач озвучок (Filmix, Rezka, HDRezka, LostFilm)
-    // Ми формуємо посилання так, щоб плеєр сам знайшов потрібний файл.
-    
+    // ТІЛЬКИ ДЖЕРЕЛА, ЯКІ ПРАЦЮЮТЬ В IFRAME
     switch(source) {
-        case 'voidboost': 
-            // Voidboost (він же Alloha) - основний агрегатор для Lampa. 
-            // Там є перемикач озвучок всередині.
-            url = `https://voidboost.net/embed/movie?title=${title}`;
+        case 'vidsrc': // VidSrc.to (Стабільно, багато мов, субтитри)
+            url = `https://vidsrc.to/embed/movie/${tmdbId}`;
             break;
             
-        case 'kodik': 
-            // Kodik - найкращий для серіалів та аніме, має випадаючий список озвучок.
-            // Шукає дуже добре і по укр, і по англ назві.
-            url = `http://kodik.cc/find-player?title=${title}&prioritize_translations=uk,ua,ru&types=film,serial`;
+        case 'superembed': // SuperEmbed (Multi-Source, Rezka/Filmix через проксі)
+            url = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
             break;
             
-        case 'ashdi': 
-            // Ashdi - чисто український контент.
-            url = `https://ashdi.vip/vod/search?title=${title}`;
+        case '2embed': // 2Embed (Ще один стабільний варіант)
+            url = `https://www.2embed.cc/embed/${tmdbId}`;
             break;
             
-        case 'ua_world':
-            // Резервний пошук
-            url = `https://uaserials.pro/search?q=${title}`; 
-            // Це не ембед, це сайт, тому краще відкривати в новому вікні, але спробуємо iframe.
-            // Краще замінимо на VidSrc (Original)
-            url = `https://vidsrc.to/embed/movie/${data.id}`;
-            break;
+        default:
+            url = `https://vidsrc.to/embed/movie/${tmdbId}`;
     }
     
-    console.log(`Opening ${source}:`, url);
+    console.log(`Playing [${source}]:`, url);
     iframe.src = url;
     playerOverlay.classList.add('active');
     
@@ -126,7 +111,7 @@ function closePlayer() {
     Controller.scan(); Controller.focus();
 }
 
-// --- MODAL & SOURCE SELECTOR ---
+// --- MODAL (З ВИБОРОМ ДЖЕРЕЛА) ---
 function openModal(data) {
     window.currentMovieData = data;
     document.getElementById('m-title').innerText = data.title;
@@ -135,18 +120,17 @@ function openModal(data) {
     document.getElementById('m-rating').innerText = data.rating;
     document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
     
-    // КНОПКИ ДЖЕРЕЛ (ЗАМІСТЬ ПЛАГІНІВ)
-    // Ми емулюємо роботу Online Mod, даючи вибір джерела вручну
+    // КНОПКИ: Ті, що точно працюють в iframe
     const btnContainer = document.querySelector('.modal-buttons');
     btnContainer.innerHTML = `
-        <div class="modal-btn focus" style="background:#4b76fb; color:white" onclick="playMovie(window.currentMovieData, 'voidboost')">
-            ▶ Voidboost (Багато озвучок)
+        <div class="modal-btn focus" style="background:#4b76fb" onclick="playMovie(window.currentMovieData, 'vidsrc')">
+            ▶ VidSrc (Основний)
         </div>
-        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'kodik')">
-            🎬 Kodik (Rezka/Filmix)
+        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'superembed')">
+            🌍 MultiEmbed (Rezka)
         </div>
-        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'ashdi')">
-            🇺🇦 Ashdi (Тільки Укр)
+        <div class="modal-btn" onclick="window.open('https://ashdi.vip/vod/search?title=${encodeURIComponent(data.title)}', '_blank')">
+            🇺🇦 Ashdi (Нове вікно)
         </div>
         <div class="modal-btn" style="background:#333" onclick="closeModal()">Закрити</div>
     `;
