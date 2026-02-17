@@ -1,1 +1,37 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lampa Zero</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="head">
+            <div class="logo">Lampa Zero</div>
+            <div class="menu-items">
+                <div class="menu-btn focus" tabindex="1">Головна</div>
+                <div class="menu-btn" tabindex="2">Пошук</div>
+                <div class="menu-btn" tabindex="3">Налаштування</div>
+            </div>
+        </div>
 
+        <div class="content">
+            <h1>Моя бібліотека</h1>
+            <div id="plugin-status" class="status">Очікування плагінів...</div>
+            
+            <div class="cards-row" id="main-row">
+                <!-- Сюди будемо рендерити картки -->
+                <div class="card" tabindex="4">
+                    <div class="card-img"></div>
+                    <div class="card-title">Тестовий фільм</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Спочатку вантажимо наше ядро -->
+    <script src="core.js"></script>
+</body>
+</html>
