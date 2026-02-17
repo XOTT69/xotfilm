@@ -1,12 +1,12 @@
 /* ==========================================
-   XOTT CORE v13.0 (Real Plugin Integration)
+   XOTT CORE v14.0 (Plugin DOM Hook)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- 1. LAMPA KERNEL EMULATION (ENHANCED) ---
+// --- 1. LAMPA KERNEL EMULATION ---
 window.Lampa = {
     Manifest: { app_digital: 300, version: '1.0.0' },
     Storage: {
@@ -17,27 +17,25 @@ window.Lampa = {
     Activity: { 
         active: () => ({ 
             card: window.currentMovieData, 
-            component: () => ({})
+            component: () => ({ 
+                render: () => ({ find: (sel) => ({ remove: ()=>{}, append: ()=>{} }) }) // Fake component
+            })
         }), 
         push: ()=>{}, replace: ()=>{} 
     },
     Component: { add: ()=>{}, get: ()=>({}) },
-    // ПЕРЕХОПЛЕННЯ ЗАПУСКУ ВІДЕО ВІД ПЛАГІНА
     Player: { 
         play: (d) => { 
             console.log('Plugin playing:', d); 
             playMovie('custom', d.url); 
         }, 
         playlist: (p) => { 
-            console.log('Plugin playlist:', p);
             if(p && p[0]) playMovie('custom', p[0].url);
         } 
     },
     Platform: { is: (n) => n === 'web', get: () => 'web' },
     Utils: { uid: () => 'xott-' + Math.random(), hash: (s) => btoa(s), putScriptAsync: (u, c) => { if(!Array.isArray(u)) u=[u]; let k=0; u.forEach(x=>{ let s=document.createElement('script'); s.src=x; s.onload=()=>{if(++k==u.length&&c)c()}; document.head.appendChild(s); }); }, toggleFullScreen: () => !document.fullscreenElement ? document.documentElement.requestFullscreen() : document.exitFullscreen() },
     Network: { silent: (u, s, e) => { fetch(u).then(r=>r.json()).then(s).catch(e); }, timeout: ()=>{} },
-    
-    // ВАЖЛИВО: Система подій для плагінів
     Listener: { 
         _ev: {},
         follow: function(n, c) { (this._ev[n] = this._ev[n] || []).push(c); },
@@ -53,7 +51,7 @@ const Plugins = {
     renderList: function() { const b = document.getElementById('plugins-list'); if(b) b.innerHTML = this.list.map(u => `<div class="plugin-item">${u}</div>`).join(''); }
 };
 
-// --- 3. STANDARD API & LOGIC (XOTT) ---
+// --- 3. STANDARD API ---
 const Api = {
     currentPage: 1, isLoading: false,
     async get(m, p='') {
@@ -71,9 +69,7 @@ function renderCards(d, c, a=false) {
     d.results.forEach(i => {
         if(!i.poster_path) return;
         let el = document.createElement('div'); el.className = 'card'; el.tabIndex = -1;
-        el.dataset.id = i.id; 
-        el.dataset.title = i.title || i.name;
-        el.dataset.img = IMG_URL + i.poster_path;
+        el.dataset.id = i.id; el.dataset.title = i.title || i.name; el.dataset.img = IMG_URL + i.poster_path;
         el.innerHTML = `<div class="card-img" style="background-image:url('${IMG_URL+i.poster_path}')"><div class="rating-badge">${i.vote_average.toFixed(1)}</div></div><div class="card-title">${i.title||i.name}</div>`;
         el.onclick = (e) => { e.stopPropagation(); openModal(i); }; 
         con.appendChild(el);
@@ -86,34 +82,40 @@ function openModal(data) {
     const title = data.title || data.name;
     const poster = data.poster_path ? IMG_URL + data.poster_path : '';
     const year = (data.release_date || data.first_air_date || '').substr(0,4);
-    const rating = data.vote_average || 0;
-    const descr = data.overview || 'Опису немає.';
-
+    
     document.getElementById('m-title').innerText = title;
     document.getElementById('m-poster').style.backgroundImage = `url('${poster}')`;
     document.getElementById('m-year').innerText = year;
-    document.getElementById('m-rating').innerText = rating;
-    document.getElementById('m-descr').innerText = descr;
+    document.getElementById('m-rating').innerText = data.vote_average || 0;
+    document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
     
-    // КНОПКА "ДИВИТИСЬ" - СПОЧАТКУ НАШ СЕЛЕКТОР
+    // ВСТАВЛЯЄМО НАШУ КНОПКУ "ДЖЕРЕЛА"
     document.getElementById('btn-watch').onclick = () => showSources(data);
 
     document.getElementById('modal').classList.add('active');
     Controller.currentContext = 'modal';
-    
-    // 🔥 МАГІЯ: ПОВІДОМЛЯЄМО ПЛАГІНАМ ПРО ВІДКРИТТЯ КАРТКИ 🔥
-    // Створюємо фейковий об'єкт active, щоб плагін думав, що це Lampa
+
+    // TRIGGER PLUGIN EVENT
+    // Плагін подумає, що відкрилась картка, і почне рендерити свої кнопки в (невидимий) .full-start__buttons
     const activity = {
-        component: function() { return {}; },
+        component: function() { 
+            return {
+                render: function() { 
+                    // Повертаємо посилання на наш FAKE DOM
+                    return {
+                        find: function(selector) {
+                            if(selector === '.full-start__buttons') return { append: (btn)=>{ console.log('Plugin added button:', btn); } };
+                            return { remove: ()=>{}, append: ()=>{} };
+                        }
+                    }
+                }
+            }; 
+        },
         card: data,
         id: data.id
     };
     
-    // Відправляємо подію 'full' (відкриття повної картки)
-    // Плагіни (Lampac/Online) підписуються на це і починають шукати торренти/онлайн
-    try {
-        window.Lampa.Listener.send('full', { object: activity });
-    } catch(e) { console.error('Plugin error:', e); }
+    try { window.Lampa.Listener.send('full', { object: activity }); } catch(e) {}
 
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
@@ -124,9 +126,10 @@ function showSources(data) {
     const list = document.getElementById('source-list');
     const panel = document.getElementById('source-selector');
     
+    // МЕНЮ, ДЕ Є ВСЕ
     const sources = [
-        { name: 'VidSrc PRO / Lampac', meta: '⚡ Основний', id: 'vidsrc_pro' },
-        { name: 'SuperEmbed (Rezka)', meta: '🌍 Резерв', id: 'superembed' },
+        { name: 'Lampac / VidSrc', meta: 'Основний (Плагін)', id: 'vidsrc_pro' },
+        { name: 'SuperEmbed (Rezka)', meta: 'Резерв', id: 'superembed' },
         { name: 'VidSrc.to', meta: '🇬🇧 Англ', id: 'vidsrc_to' }
     ];
 
@@ -153,12 +156,8 @@ function playMovie(sourceId, customUrl) {
         if(sourceId === 'vidsrc_to') url = `https://vidsrc.to/embed/movie/${data.id}`;
     }
     
-    // FIX: Якщо плагін дав потік HLS (.m3u8), відкриваємо його через HLS-плеєр
-    if (url.includes('.m3u8')) {
-        url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
-    }
+    if (url.includes('.m3u8')) url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
     
-    console.log(`Playing:`, url);
     iframe.src = url;
     document.getElementById('player-overlay').classList.add('active');
     document.getElementById('source-selector').classList.remove('active');
@@ -188,7 +187,6 @@ function closeModal() {
 
 async function loadMore() { if(Api.isLoading) return; Api.isLoading=true; Api.currentPage++; let d=await Api.loadTrending(Api.currentPage); if(d) renderCards(d,'main-row',true); Api.isLoading=false; Controller.scan(); }
 
-// --- CONTROLLER ---
 const Controller = {
     targets: [], idx: 0, currentContext: 'app',
     scan: function() {
