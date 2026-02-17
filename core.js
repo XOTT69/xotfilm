@@ -1,5 +1,5 @@
 /* ==========================================
-   XOTT CORE v3.0 (Fixed Player + ID)
+   XOTT CORE v4.0 (Infinite Scroll + Multi-Source Player)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
@@ -9,25 +9,14 @@ const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 // --- PLUGINS SYSTEM ---
 const Plugins = {
     list: JSON.parse(localStorage.getItem('xott_plugins') || '[]'),
-    
-    init: function() {
-        this.list.forEach(url => Utils.putScriptAsync(url));
-        this.renderList();
-    },
-    
+    init: function() { this.list.forEach(url => Utils.putScriptAsync(url)); this.renderList(); },
     add: function(url) {
-        if(!url) return;
-        if(this.list.includes(url)) return alert('Вже додано');
-        this.list.push(url);
-        localStorage.setItem('xott_plugins', JSON.stringify(this.list));
-        Utils.putScriptAsync(url);
-        this.renderList();
+        if(!url || this.list.includes(url)) return;
+        this.list.push(url); localStorage.setItem('xott_plugins', JSON.stringify(this.list));
+        Utils.putScriptAsync(url); this.renderList();
     },
-    
     renderList: function() {
-        const box = document.getElementById('plugins-list');
-        if(!box) return;
-        box.innerHTML = this.list.map(url => `<div class="plugin-item">${url}</div>`).join('');
+        const box = document.getElementById('plugins-list'); if(box) box.innerHTML = this.list.map(u => `<div class="plugin-item">${u}</div>`).join('');
     }
 };
 
@@ -35,18 +24,17 @@ const Plugins = {
 const Listener = { _ev: {}, follow(n,c){(this._ev[n]=this._ev[n]||[]).push(c)}, send(n,d){(this._ev[n]||[]).forEach(c=>c(d))} };
 const Storage = { get:(n,d)=>localStorage.getItem(n)||d, set:(n,v)=>localStorage.setItem(n,v) };
 const Utils = {
-    putScriptAsync: (urls, cb) => {
-        if(!Array.isArray(urls)) urls = [urls];
-        let c=0; urls.forEach(u=>{ let s=document.createElement('script'); s.src=u; s.onload=()=>{if(++c==urls.length&&cb)cb()}; document.head.appendChild(s); });
-    },
+    putScriptAsync: (urls, cb) => { if(!Array.isArray(urls)) urls=[urls]; let c=0; urls.forEach(u=>{ let s=document.createElement('script'); s.src=u; s.onload=()=>{if(++c==urls.length&&cb)cb()}; document.head.appendChild(s); }); },
     toggleFullScreen: () => !document.fullscreenElement ? document.documentElement.requestFullscreen() : document.exitFullscreen()
 };
 const Template = { get: (name, obj) => '' };
-
 window.Lampa = { Listener, Storage, Utils, Template, Manifest: { app_digital: 300 } };
 
 // --- API ---
 const Api = {
+    currentPage: 1,
+    isLoading: false,
+    
     async get(method, params = '') {
         let url = `${BASE_URL}/${method}?api_key=${API_KEY}&language=uk-UA${params}`;
         try {
@@ -59,29 +47,31 @@ const Api = {
             return resP.ok ? await resP.json() : null;
         }
     },
-    async loadTrending() { return await this.get('trending/movie/week'); },
+    async loadTrending(page = 1) { return await this.get('trending/movie/week', `&page=${page}`); },
     async search(query) { return await this.get('search/movie', `&query=${encodeURIComponent(query)}`); }
 };
 
 // --- RENDER ---
-function renderCards(data, containerId) {
+function renderCards(data, containerId, append = false) {
     const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    if (!data || !data.results?.length) { container.innerHTML = '<div style="padding:20px;color:#666">Пусто</div>'; return; }
+    if (!append) container.innerHTML = '';
+    
+    if (!data || !data.results?.length) { 
+        if(!append) container.innerHTML = '<div style="padding:20px;color:#666">Пусто</div>'; 
+        return; 
+    }
 
     data.results.forEach(item => {
         if(!item.poster_path) return;
         let el = document.createElement('div');
         el.className = 'card'; el.tabIndex = -1;
-        
-        // ВАЖЛИВО: Зберігаємо ID фільму
         el.dataset.id = item.id;
         el.dataset.title = item.title || item.name;
-        el.dataset.overview = item.overview;
         el.dataset.year = (item.release_date || item.first_air_date || '').substr(0,4);
         el.dataset.rating = item.vote_average;
         el.dataset.img = IMG_URL + item.poster_path;
         el.dataset.orig_title = item.original_title || item.original_name;
+        el.dataset.overview = item.overview;
 
         el.innerHTML = `<div class="card-img" style="background-image: url('${IMG_URL + item.poster_path}')"><div class="rating-badge">${item.vote_average.toFixed(1)}</div></div><div class="card-title">${item.title || item.name}</div>`;
         el.onclick = (e) => { e.stopPropagation(); openModal(el.dataset); };
@@ -89,35 +79,39 @@ function renderCards(data, containerId) {
     });
 }
 
-// --- PLAYER ---
-function playMovie(data) {
+// --- PLAYER SYSTEM (MULTI-SOURCE) ---
+function playMovie(data, source = 'ashdi') {
     const playerOverlay = document.getElementById('player-overlay');
     const iframe = document.getElementById('video-frame');
-    
-    // ВБУДОВАНИЙ ПЛЕЄР:
-    // Використовуємо VidSrc (найкращий варіант для TMDB ID)
-    // Він знаходить фільм автоматично і показує його без зайвих налаштувань.
-    
-    // Якщо ID є (а ми його додали в renderCards), то все супер.
-    const tmdbId = data.id;
     const title = encodeURIComponent(data.title);
+    const orig = encodeURIComponent(data.orig_title);
+    const id = data.id;
     
-    let streamUrl = '';
+    let url = '';
     
-    if (tmdbId) {
-        // VidSrc.to (Стабільний, працює з TMDB ID)
-        streamUrl = `https://vidsrc.to/embed/movie/${tmdbId}`;
-    } else {
-        // Резерв: Пошук по назві через Voidboost
-        streamUrl = `https://voidboost.net/embed/movie?title=${title}`;
+    // ДЖЕРЕЛА (Всі підтримують вибір озвучки всередині плеєра, крім VidSrc)
+    switch(source) {
+        case 'ashdi': // Українське джерело (часто блокує iframe, але спробуємо)
+            url = `https://ashdi.vip/vod/search?title=${title}`;
+            break;
+        case 'voidboost': // Найкращий вибір (багато озвучок)
+            url = `https://voidboost.net/embed/movie?title=${title}`;
+            break;
+        case 'kinokong': // Тільки укр/рос
+            url = `https://kinokong.org/embed/movie?title=${title}`;
+            break;
+        case 'vidsrc': // Англ + субтитри (стабільний)
+            url = `https://vidsrc.to/embed/movie/${id}`;
+            break;
+        case 'superembed': // Резерв
+            url = `https://superembed.stream/embed/movie/${id}`;
+            break;
+        default:
+            url = `https://voidboost.net/embed/movie?title=${title}`;
     }
     
-    // Для України також добре працює Ashdi, якщо VidSrc блокується:
-    // streamUrl = `https://ashdi.vip/vod/search?title=${title}`;
-    
-    console.log('Відкриваю плеєр:', streamUrl);
-    
-    iframe.src = streamUrl;
+    console.log(`Playing [${source}]:`, url);
+    iframe.src = url;
     playerOverlay.classList.add('active');
     
     Controller.currentContext = 'player';
@@ -131,10 +125,46 @@ function closePlayer() {
     Controller.scan(); Controller.focus();
 }
 
-function addPlugin() {
-    const inp = document.getElementById('plugin-url');
-    Plugins.add(inp.value);
-    inp.value = '';
+// --- MODAL & SOURCES ---
+function openModal(data) {
+    window.currentMovieData = data;
+    document.getElementById('m-title').innerText = data.title;
+    document.getElementById('m-poster').style.backgroundImage = `url('${data.img}')`;
+    document.getElementById('m-year').innerText = data.year;
+    document.getElementById('m-rating').innerText = data.rating;
+    document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
+    
+    // Оновлюємо кнопки в модалці (Додаємо вибір джерела)
+    const btnContainer = document.querySelector('.modal-buttons');
+    btnContainer.innerHTML = `
+        <div class="modal-btn focus" onclick="playMovie(window.currentMovieData, 'voidboost')">▶ Voidboost (Багато мов)</div>
+        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'ashdi')">🇺🇦 Ashdi (Укр)</div>
+        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'vidsrc')">🇬🇧 VidSrc (Orig)</div>
+        <div class="modal-btn" onclick="closeModal()">Закрити</div>
+    `;
+
+    document.getElementById('modal').classList.add('active');
+    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
+}
+
+// --- INFINITE SCROLL ---
+async function loadMore() {
+    if(Api.isLoading) return;
+    Api.isLoading = true;
+    Api.currentPage++;
+    
+    // Показуємо лоадер знизу (якщо треба, можна додати в HTML)
+    let data = await Api.loadTrending(Api.currentPage);
+    if(data) renderCards(data, 'main-row', true);
+    
+    Api.isLoading = false;
+    // Оновлюємо навігацію, щоб побачити нові картки
+    Controller.scan();
 }
 
 // --- CONTROLLER ---
@@ -161,6 +191,12 @@ const Controller = {
             let el = this.targets[this.idx];
             el.classList.add('focus');
             el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            
+            // Якщо ми дійшли до кінця списку - вантажимо ще!
+            if (this.currentContext === 'app' && this.idx > this.targets.length - 5) {
+                loadMore();
+            }
+            
             if(el.tagName === 'INPUT') el.focus(); else if (document.activeElement) document.activeElement.blur();
         }
     },
@@ -181,12 +217,11 @@ const Controller = {
         if(el.classList.contains('menu-btn')) showScreen(el.dataset.action);
         else if(el.classList.contains('card')) openModal(el.dataset);
         else if(el.id === 'do-search') doSearch();
-        else if(el.id === 'btn-watch') playMovie(window.currentMovieData);
         else if(el.onclick) el.click();
     }
 };
 
-// --- UI ---
+// --- UI HELPERS ---
 function showScreen(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + name).classList.add('active');
@@ -195,35 +230,14 @@ function showScreen(name) {
     if(name === 'settings') Plugins.renderList();
     setTimeout(() => { Controller.idx = 0; Controller.scan(); Controller.focus(); }, 100);
 }
-
-async function loadMain() {
-    let data = await Api.loadTrending();
-    if(data) renderCards(data, 'main-row');
-}
-
+async function loadMain() { let data = await Api.loadTrending(); if(data) renderCards(data, 'main-row'); }
 async function doSearch() {
     let q = document.getElementById('search-input').value; if(!q) return;
     document.getElementById('search-results').innerHTML = '<div class="loader">Пошук...</div>';
-    let data = await Api.search(q);
-    renderCards(data, 'search-results');
+    let data = await Api.search(q); renderCards(data, 'search-results');
     setTimeout(() => { Controller.scan(); Controller.idx = 2; Controller.focus(); }, 500);
 }
-
-function openModal(data) {
-    window.currentMovieData = data;
-    document.getElementById('m-title').innerText = data.title;
-    document.getElementById('m-poster').style.backgroundImage = `url('${data.img}')`;
-    document.getElementById('m-year').innerText = data.year;
-    document.getElementById('m-rating').innerText = data.rating;
-    document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
-    document.getElementById('modal').classList.add('active');
-    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
-}
-
-function closeModal() {
-    document.getElementById('modal').classList.remove('active');
-    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
-}
+function addPlugin() { const inp = document.getElementById('plugin-url'); Plugins.add(inp.value); inp.value = ''; }
 
 // --- INIT ---
 window.onload = () => {
@@ -248,6 +262,14 @@ window.onload = () => {
     
     const sBtn = document.getElementById('do-search'); if(sBtn) sBtn.onclick = doSearch;
     const addP = document.getElementById('btn-add-plugin'); if(addP) addP.onclick = addPlugin;
+
+    // Detect scroll to load more (Mouse users)
+    const content = document.querySelector('.content');
+    content.addEventListener('scroll', () => {
+        if(content.scrollTop + content.clientHeight >= content.scrollHeight - 100) {
+            loadMore();
+        }
+    });
 
     showScreen('main');
 };
