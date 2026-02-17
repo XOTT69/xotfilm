@@ -1,12 +1,12 @@
 /* ==========================================
-   XOTT CORE v4.0 (Infinite Scroll + Multi-Source Player)
+   XOTT CORE v5.0 (Voiceover Selector + Search Fix)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- PLUGINS SYSTEM ---
+// --- PLUGINS (Логіка збережена, але UI тепер вбудований) ---
 const Plugins = {
     list: JSON.parse(localStorage.getItem('xott_plugins') || '[]'),
     init: function() { this.list.forEach(url => Utils.putScriptAsync(url)); this.renderList(); },
@@ -32,19 +32,14 @@ window.Lampa = { Listener, Storage, Utils, Template, Manifest: { app_digital: 30
 
 // --- API ---
 const Api = {
-    currentPage: 1,
-    isLoading: false,
-    
+    currentPage: 1, isLoading: false,
     async get(method, params = '') {
         let url = `${BASE_URL}/${method}?api_key=${API_KEY}&language=uk-UA${params}`;
         try {
-            let res = await fetch(url);
-            if (!res.ok) throw new Error(res.status);
-            return await res.json();
+            let res = await fetch(url); if (!res.ok) throw new Error(res.status); return await res.json();
         } catch (e) {
             let proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
-            let resP = await fetch(proxy);
-            return resP.ok ? await resP.json() : null;
+            let resP = await fetch(proxy); return resP.ok ? await resP.json() : null;
         }
     },
     async loadTrending(page = 1) { return await this.get('trending/movie/week', `&page=${page}`); },
@@ -55,11 +50,7 @@ const Api = {
 function renderCards(data, containerId, append = false) {
     const container = document.getElementById(containerId);
     if (!append) container.innerHTML = '';
-    
-    if (!data || !data.results?.length) { 
-        if(!append) container.innerHTML = '<div style="padding:20px;color:#666">Пусто</div>'; 
-        return; 
-    }
+    if (!data || !data.results?.length) { if(!append) container.innerHTML = '<div style="padding:20px;color:#666">Пусто</div>'; return; }
 
     data.results.forEach(item => {
         if(!item.poster_path) return;
@@ -79,38 +70,48 @@ function renderCards(data, containerId, append = false) {
     });
 }
 
-// --- PLAYER SYSTEM (MULTI-SOURCE) ---
-function playMovie(data, source = 'ashdi') {
+// --- PLAYER SOURCES (Балансери з озвучками) ---
+function playMovie(data, source) {
     const playerOverlay = document.getElementById('player-overlay');
     const iframe = document.getElementById('video-frame');
     const title = encodeURIComponent(data.title);
-    const orig = encodeURIComponent(data.orig_title);
-    const id = data.id;
+    const orig = encodeURIComponent(data.orig_title || data.title);
+    const year = data.year;
     
     let url = '';
+
+    // ТУТ НАЙВАЖЛИВІШЕ:
+    // Voidboost і Kodik мають вбудований перемикач озвучок (Filmix, Rezka, HDRezka, LostFilm)
+    // Ми формуємо посилання так, щоб плеєр сам знайшов потрібний файл.
     
-    // ДЖЕРЕЛА (Всі підтримують вибір озвучки всередині плеєра, крім VidSrc)
     switch(source) {
-        case 'ashdi': // Українське джерело (часто блокує iframe, але спробуємо)
+        case 'voidboost': 
+            // Voidboost (він же Alloha) - основний агрегатор для Lampa. 
+            // Там є перемикач озвучок всередині.
+            url = `https://voidboost.net/embed/movie?title=${title}`;
+            break;
+            
+        case 'kodik': 
+            // Kodik - найкращий для серіалів та аніме, має випадаючий список озвучок.
+            // Шукає дуже добре і по укр, і по англ назві.
+            url = `http://kodik.cc/find-player?title=${title}&prioritize_translations=uk,ua,ru&types=film,serial`;
+            break;
+            
+        case 'ashdi': 
+            // Ashdi - чисто український контент.
             url = `https://ashdi.vip/vod/search?title=${title}`;
             break;
-        case 'voidboost': // Найкращий вибір (багато озвучок)
-            url = `https://voidboost.net/embed/movie?title=${title}`;
+            
+        case 'ua_world':
+            // Резервний пошук
+            url = `https://uaserials.pro/search?q=${title}`; 
+            // Це не ембед, це сайт, тому краще відкривати в новому вікні, але спробуємо iframe.
+            // Краще замінимо на VidSrc (Original)
+            url = `https://vidsrc.to/embed/movie/${data.id}`;
             break;
-        case 'kinokong': // Тільки укр/рос
-            url = `https://kinokong.org/embed/movie?title=${title}`;
-            break;
-        case 'vidsrc': // Англ + субтитри (стабільний)
-            url = `https://vidsrc.to/embed/movie/${id}`;
-            break;
-        case 'superembed': // Резерв
-            url = `https://superembed.stream/embed/movie/${id}`;
-            break;
-        default:
-            url = `https://voidboost.net/embed/movie?title=${title}`;
     }
     
-    console.log(`Playing [${source}]:`, url);
+    console.log(`Opening ${source}:`, url);
     iframe.src = url;
     playerOverlay.classList.add('active');
     
@@ -125,7 +126,7 @@ function closePlayer() {
     Controller.scan(); Controller.focus();
 }
 
-// --- MODAL & SOURCES ---
+// --- MODAL & SOURCE SELECTOR ---
 function openModal(data) {
     window.currentMovieData = data;
     document.getElementById('m-title').innerText = data.title;
@@ -134,13 +135,20 @@ function openModal(data) {
     document.getElementById('m-rating').innerText = data.rating;
     document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
     
-    // Оновлюємо кнопки в модалці (Додаємо вибір джерела)
+    // КНОПКИ ДЖЕРЕЛ (ЗАМІСТЬ ПЛАГІНІВ)
+    // Ми емулюємо роботу Online Mod, даючи вибір джерела вручну
     const btnContainer = document.querySelector('.modal-buttons');
     btnContainer.innerHTML = `
-        <div class="modal-btn focus" onclick="playMovie(window.currentMovieData, 'voidboost')">▶ Voidboost (Багато мов)</div>
-        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'ashdi')">🇺🇦 Ashdi (Укр)</div>
-        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'vidsrc')">🇬🇧 VidSrc (Orig)</div>
-        <div class="modal-btn" onclick="closeModal()">Закрити</div>
+        <div class="modal-btn focus" style="background:#4b76fb; color:white" onclick="playMovie(window.currentMovieData, 'voidboost')">
+            ▶ Voidboost (Багато озвучок)
+        </div>
+        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'kodik')">
+            🎬 Kodik (Rezka/Filmix)
+        </div>
+        <div class="modal-btn" onclick="playMovie(window.currentMovieData, 'ashdi')">
+            🇺🇦 Ashdi (Тільки Укр)
+        </div>
+        <div class="modal-btn" style="background:#333" onclick="closeModal()">Закрити</div>
     `;
 
     document.getElementById('modal').classList.add('active');
@@ -157,20 +165,15 @@ async function loadMore() {
     if(Api.isLoading) return;
     Api.isLoading = true;
     Api.currentPage++;
-    
-    // Показуємо лоадер знизу (якщо треба, можна додати в HTML)
     let data = await Api.loadTrending(Api.currentPage);
     if(data) renderCards(data, 'main-row', true);
-    
     Api.isLoading = false;
-    // Оновлюємо навігацію, щоб побачити нові картки
     Controller.scan();
 }
 
 // --- CONTROLLER ---
 const Controller = {
     targets: [], idx: 0, currentContext: 'app',
-
     scan: function() {
         if(this.currentContext === 'player') {
             this.targets = [document.querySelector('.btn-close')];
@@ -184,34 +187,24 @@ const Controller = {
         }
         if(this.idx >= this.targets.length) this.idx = 0;
     },
-
     focus: function() {
         document.querySelectorAll('.focus').forEach(e => e.classList.remove('focus'));
         if(this.targets[this.idx]) {
-            let el = this.targets[this.idx];
-            el.classList.add('focus');
+            let el = this.targets[this.idx]; el.classList.add('focus');
             el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            
-            // Якщо ми дійшли до кінця списку - вантажимо ще!
-            if (this.currentContext === 'app' && this.idx > this.targets.length - 5) {
-                loadMore();
-            }
-            
+            if (this.currentContext === 'app' && this.idx > this.targets.length - 5) loadMore();
             if(el.tagName === 'INPUT') el.focus(); else if (document.activeElement) document.activeElement.blur();
         }
     },
-
     move: function(dir) {
         this.scan(); if(!this.targets.length) return;
         const cols = 5; 
-        if (dir === 'right') this.idx++;
-        if (dir === 'left') this.idx--;
+        if (dir === 'right') this.idx++; if (dir === 'left') this.idx--;
         if (dir === 'down') this.idx += (this.targets[this.idx].classList.contains('menu-btn')) ? 1 : cols;
         if (dir === 'up') { this.idx -= cols; if(this.idx<0) this.idx=0; }
         if (this.idx < 0) this.idx = 0; if (this.idx >= this.targets.length) this.idx = this.targets.length - 1;
         this.focus();
     },
-
     enter: function() {
         let el = this.targets[this.idx]; if(!el) return;
         if(el.classList.contains('menu-btn')) showScreen(el.dataset.action);
@@ -221,7 +214,7 @@ const Controller = {
     }
 };
 
-// --- UI HELPERS ---
+// --- UI & INIT ---
 function showScreen(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + name).classList.add('active');
@@ -239,37 +232,22 @@ async function doSearch() {
 }
 function addPlugin() { const inp = document.getElementById('plugin-url'); Plugins.add(inp.value); inp.value = ''; }
 
-// --- INIT ---
 window.onload = () => {
     Plugins.init();
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
-    
     document.addEventListener('keydown', e => {
-        if(e.code==='ArrowRight') Controller.move('right');
-        if(e.code==='ArrowLeft') Controller.move('left');
-        if(e.code==='ArrowDown') Controller.move('down');
-        if(e.code==='ArrowUp') Controller.move('up');
+        if(e.code==='ArrowRight') Controller.move('right'); if(e.code==='ArrowLeft') Controller.move('left');
+        if(e.code==='ArrowDown') Controller.move('down'); if(e.code==='ArrowUp') Controller.move('up');
         if(e.code==='Enter') Controller.enter();
-        if(e.code==='Escape'||e.code==='Backspace') {
-            if(Controller.currentContext === 'player') closePlayer(); else closeModal();
-        }
+        if(e.code==='Escape'||e.code==='Backspace') { if(Controller.currentContext === 'player') closePlayer(); else closeModal(); }
     });
-
     document.body.addEventListener('click', (e) => {
         const target = e.target.closest('.menu-btn, .search-btn, .settings-item, .modal-btn, .btn, .btn-close');
         if (target) { Controller.scan(); Controller.idx = Controller.targets.indexOf(target); Controller.focus(); Controller.enter(); }
     });
-    
     const sBtn = document.getElementById('do-search'); if(sBtn) sBtn.onclick = doSearch;
     const addP = document.getElementById('btn-add-plugin'); if(addP) addP.onclick = addPlugin;
-
-    // Detect scroll to load more (Mouse users)
     const content = document.querySelector('.content');
-    content.addEventListener('scroll', () => {
-        if(content.scrollTop + content.clientHeight >= content.scrollHeight - 100) {
-            loadMore();
-        }
-    });
-
+    content.addEventListener('scroll', () => { if(content.scrollTop + content.clientHeight >= content.scrollHeight - 100) loadMore(); });
     showScreen('main');
 };
