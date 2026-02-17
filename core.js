@@ -1,30 +1,41 @@
 /* ==========================================
-   XOTT CORE v16.0 (Native Lampac Integration)
+   XOTT CORE v17.0 (Direct Alloha/Voidboost API)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- 1. LAMPAC API CLIENT (NATIVE) ---
-const Lampac = {
-    // Емулюємо роботу плагіна, звертаючись до його API напряму
+// ALLOHA (VOIDBOOST) - це те, що використовує Lampac для озвучок
+const ALLOHA_API = 'https://api.alloha.tv';
+
+// --- ALLOHA CLIENT (REAL LAMPAC LOGIC) ---
+const Alloha = {
     async search(tmdbId, title, year) {
-        console.log('Lampac Searching:', tmdbId, title);
+        console.log('Alloha searching:', tmdbId);
         
-        // Крок 1: Отримуємо Kinopoisk ID (якщо треба)
-        // Але Lampac вміє працювати і по TMDB ID
-        
-        // Крок 2: Формуємо запит до плеєра
-        // Ми відкриваємо універсальний плеєр, який сам зробить всю роботу
-        // Це і є "суть" плагіна, тільки без зайвого коду
-        
-        const url = `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
-        return url;
+        try {
+            // Запит до Alloha API (це публічне API, не потребує ключів)
+            const url = `${ALLOHA_API}/?token=&imdb=${tmdbId}`;
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+            
+            const res = await fetch(proxyUrl);
+            const data = await res.json();
+            
+            if (data && data.data) {
+                console.log('Alloha data:', data);
+                return data.data;
+            }
+            
+            return null;
+        } catch(e) {
+            console.error('Alloha error:', e);
+            return null;
+        }
     }
 };
 
-// --- 2. STANDARD API ---
+// --- STANDARD API ---
 const Api = {
     currentPage: 1, isLoading: false,
     async get(m, p='') {
@@ -49,7 +60,6 @@ function renderCards(d, c, a=false) {
     });
 }
 
-// --- MODAL & INTEGRATION ---
 function openModal(data) {
     window.currentMovieData = data;
     document.getElementById('m-title').innerText = data.title || data.name;
@@ -58,7 +68,6 @@ function openModal(data) {
     document.getElementById('m-rating').innerText = data.vote_average || 0;
     document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
     
-    // Кнопка відкриває меню джерел
     document.getElementById('btn-watch').onclick = () => showSources(data);
 
     document.getElementById('modal').classList.add('active');
@@ -66,49 +75,69 @@ function openModal(data) {
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
-// --- PLAYER & SOURCES ---
-function showSources(data) {
+// --- SOURCES WITH ALLOHA ---
+async function showSources(data) {
     window.currentMovieData = data;
     const list = document.getElementById('source-list');
     const panel = document.getElementById('source-selector');
     
-    // Ми знаємо, що Lampac використовує VidSrc як основне джерело.
-    // Тому ми просто даємо пряме посилання на нього.
-    
-    const sources = [
-        { name: 'VidSrc PRO (Lampac)', meta: 'Основний сервер (VipStream)', id: 'lampac' },
-        { name: 'SuperEmbed (Rezka)', meta: 'Резерв (UA/RU)', id: 'superembed' },
-        { name: 'VidSrc.to', meta: '🇬🇧 Англ', id: 'vidsrc_to' }
-    ];
-
-    list.innerHTML = sources.map(s => `
-        <div class="source-item focusable" onclick="playMovie('${s.id}')">
-            <div class="source-name">${s.name}</div>
-            <div class="source-meta">${s.meta}</div>
-        </div>
-    `).join('');
-
+    list.innerHTML = '<div class="loader">Шукаю озвучки через Alloha API...</div>';
     panel.classList.add('active');
     Controller.currentContext = 'sources';
+    
+    // Спробуємо отримати дані з Alloha (як робить Lampac)
+    const allohaData = await Alloha.search(data.id, data.title, (data.release_date || '').substr(0,4));
+    
+    let html = '';
+    
+    if (allohaData && allohaData.quality) {
+        // Якщо Alloha знайшов джерела
+        html += `<div style="padding:10px; color:#888; font-size:12px">ЗНАЙДЕНО ЧЕРЕЗ ALLOHA:</div>`;
+        
+        for (let quality in allohaData.quality) {
+            const url = allohaData.quality[quality];
+            html += `
+                <div class="source-item focusable" onclick="playMovie('custom', '${url}')">
+                    <div class="source-name">Alloha - ${quality}</div>
+                    <div class="source-meta">Пряме посилання (HLS)</div>
+                </div>
+            `;
+        }
+    } else {
+        html += `<div style="padding:20px; text-align:center; color:#666">Alloha не знайшов джерел.<br>Використовую резервні плеєри:</div>`;
+    }
+    
+    // Резервні джерела (завжди працюють)
+    html += `<div style="padding:10px; color:#888; font-size:12px; margin-top:10px">УНІВЕРСАЛЬНІ ПЛЕЄРИ:</div>`;
+    html += `
+        <div class="source-item focusable" onclick="playMovie('vidsrc_pro')">
+            <div class="source-name">VidSrc PRO</div>
+            <div class="source-meta">Основний плеєр (VipStream)</div>
+        </div>
+        <div class="source-item focusable" onclick="playMovie('superembed')">
+            <div class="source-name">SuperEmbed (Rezka)</div>
+            <div class="source-meta">Резерв</div>
+        </div>
+    `;
+
+    list.innerHTML = html;
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
-async function playMovie(sourceId, customUrl) {
+function playMovie(sourceId, customUrl) {
     const data = window.currentMovieData || {};
     const iframe = document.getElementById('video-frame');
     let url = customUrl || '';
 
     if (!customUrl) {
-        if(sourceId === 'lampac') {
-            // NATIVE LAMPAC LOGIC:
-            // Ми просто відкриваємо той самий плеєр, який відкрив би плагін
-            url = `https://vidsrc.me/embed/movie?tmdb=${data.id}`;
-        }
+        if(sourceId === 'vidsrc_pro') url = `https://vidsrc.me/embed/movie?tmdb=${data.id}`;
         if(sourceId === 'superembed') url = `https://multiembed.mov/?video_id=${data.id}&tmdb=1`;
-        if(sourceId === 'vidsrc_to') url = `https://vidsrc.to/embed/movie/${data.id}`;
     }
     
-    if (url.includes('.m3u8')) url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
+    // Якщо це HLS потік (.m3u8), відкриваємо через спеціальний плеєр
+    if (url.includes('.m3u8')) {
+        url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
+    }
     
     iframe.src = url;
     document.getElementById('player-overlay').classList.add('active');
@@ -139,7 +168,6 @@ function closeModal() {
 
 async function loadMore() { if(Api.isLoading) return; Api.isLoading=true; Api.currentPage++; let d=await Api.loadTrending(Api.currentPage); if(d) renderCards(d,'main-row',true); Api.isLoading=false; Controller.scan(); }
 
-// --- CONTROLLER ---
 const Controller = {
     targets: [], idx: 0, currentContext: 'app',
     scan: function() {
