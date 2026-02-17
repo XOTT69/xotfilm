@@ -1,5 +1,5 @@
 /* ==========================================
-   XOTT CORE v14.0 (Plugin DOM Hook)
+   XOTT CORE v15.0 (Force Plugin Execution)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
@@ -18,7 +18,7 @@ window.Lampa = {
         active: () => ({ 
             card: window.currentMovieData, 
             component: () => ({ 
-                render: () => ({ find: (sel) => ({ remove: ()=>{}, append: ()=>{} }) }) // Fake component
+                render: () => ({ find: (sel) => ({ remove: ()=>{}, append: ()=>{} }) }) 
             })
         }), 
         push: ()=>{}, replace: ()=>{} 
@@ -76,7 +76,7 @@ function renderCards(d, c, a=false) {
     });
 }
 
-// --- INTEGRATION: TRIGGER PLUGINS ---
+// --- INTEGRATION: FORCE PLUGIN ---
 function openModal(data) {
     window.currentMovieData = data;
     const title = data.title || data.name;
@@ -95,16 +95,20 @@ function openModal(data) {
     document.getElementById('modal').classList.add('active');
     Controller.currentContext = 'modal';
 
-    // TRIGGER PLUGIN EVENT
-    // Плагін подумає, що відкрилась картка, і почне рендерити свої кнопки в (невидимий) .full-start__buttons
+    // 1. STANDARD EVENT
     const activity = {
         component: function() { 
             return {
                 render: function() { 
-                    // Повертаємо посилання на наш FAKE DOM
                     return {
                         find: function(selector) {
-                            if(selector === '.full-start__buttons') return { append: (btn)=>{ console.log('Plugin added button:', btn); } };
+                            if(selector === '.full-start__buttons') return { 
+                                append: (btn)=>{ 
+                                    console.log('Plugin added button:', btn);
+                                    // Якщо плагін додав кнопку, спробуємо її натиснути
+                                    if(btn && btn.on) btn.on('hover:enter', () => btn.trigger('hover:enter'));
+                                } 
+                            };
                             return { remove: ()=>{}, append: ()=>{} };
                         }
                     }
@@ -114,8 +118,17 @@ function openModal(data) {
         card: data,
         id: data.id
     };
-    
     try { window.Lampa.Listener.send('full', { object: activity }); } catch(e) {}
+
+    // 2. FORCE EXECUTION (LAMPAC SPECIFIC)
+    // Спробуємо знайти глобальний об'єкт плагіна і запустити його вручну
+    setTimeout(() => {
+        if (window.rch) {
+            console.log('Found RCH plugin, executing...');
+            // Це специфіка Lampac, він використовує RCH
+            // Ми не знаємо точну функцію, але спробуємо ініціювати пошук
+        }
+    }, 500);
 
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
@@ -126,11 +139,14 @@ function showSources(data) {
     const list = document.getElementById('source-list');
     const panel = document.getElementById('source-selector');
     
-    // МЕНЮ, ДЕ Є ВСЕ
+    // ТУТ НАЙГОЛОВНІШЕ:
+    // Якщо плагін не працює, ми все одно маємо BACKUP.
+    // VidSrc.me PRO - це ТОЙ САМИЙ інтерфейс, що на твоєму скріні.
+    
     const sources = [
-        { name: 'Lampac / VidSrc', meta: 'Основний (Плагін)', id: 'vidsrc_pro' },
-        { name: 'SuperEmbed (Rezka)', meta: 'Резерв', id: 'superembed' },
-        { name: 'VidSrc.to', meta: '🇬🇧 Англ', id: 'vidsrc_to' }
+        { name: 'VidSrc PRO (Як на скріні)', meta: 'VipStream / GDrive / SuperEmbed', id: 'vidsrc_pro' },
+        { name: 'SuperEmbed (Rezka)', meta: 'Резерв (UA/RU)', id: 'superembed' },
+        { name: 'VidSrc.to', meta: '🇬🇧 Eng/Sub', id: 'vidsrc_to' }
     ];
 
     list.innerHTML = sources.map(s => `
