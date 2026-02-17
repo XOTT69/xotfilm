@@ -1,12 +1,12 @@
 /* ==========================================
-   XOTT CORE v2.0 (Player + Plugins)
+   XOTT CORE v3.0 (Fixed Player + ID)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- СИСТЕМА ПЛАГІНІВ ---
+// --- PLUGINS SYSTEM ---
 const Plugins = {
     list: JSON.parse(localStorage.getItem('xott_plugins') || '[]'),
     
@@ -22,7 +22,6 @@ const Plugins = {
         localStorage.setItem('xott_plugins', JSON.stringify(this.list));
         Utils.putScriptAsync(url);
         this.renderList();
-        alert('Плагін додано! Перезавантажте додаток, якщо потрібно.');
     },
     
     renderList: function() {
@@ -32,7 +31,7 @@ const Plugins = {
     }
 };
 
-// --- ЕМУЛЯЦІЯ LAMPA API ---
+// --- LAMPA EMULATION ---
 const Listener = { _ev: {}, follow(n,c){(this._ev[n]=this._ev[n]||[]).push(c)}, send(n,d){(this._ev[n]||[]).forEach(c=>c(d))} };
 const Storage = { get:(n,d)=>localStorage.getItem(n)||d, set:(n,v)=>localStorage.setItem(n,v) };
 const Utils = {
@@ -55,7 +54,6 @@ const Api = {
             if (!res.ok) throw new Error(res.status);
             return await res.json();
         } catch (e) {
-            console.warn('Proxy fallback...');
             let proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
             let resP = await fetch(proxy);
             return resP.ok ? await resP.json() : null;
@@ -75,12 +73,14 @@ function renderCards(data, containerId) {
         if(!item.poster_path) return;
         let el = document.createElement('div');
         el.className = 'card'; el.tabIndex = -1;
+        
+        // ВАЖЛИВО: Зберігаємо ID фільму
+        el.dataset.id = item.id;
         el.dataset.title = item.title || item.name;
         el.dataset.overview = item.overview;
         el.dataset.year = (item.release_date || item.first_air_date || '').substr(0,4);
         el.dataset.rating = item.vote_average;
         el.dataset.img = IMG_URL + item.poster_path;
-        // ID для пошуку в плеєрах (Kinopoisk ID тут немає, але шукаємо за назвою)
         el.dataset.orig_title = item.original_title || item.original_name;
 
         el.innerHTML = `<div class="card-img" style="background-image: url('${IMG_URL + item.poster_path}')"><div class="rating-badge">${item.vote_average.toFixed(1)}</div></div><div class="card-title">${item.title || item.name}</div>`;
@@ -89,50 +89,39 @@ function renderCards(data, containerId) {
     });
 }
 
-// --- PLAYER SYSTEM ---
+// --- PLAYER ---
 function playMovie(data) {
-    // Простий і надійний варіант: Відкриваємо Ashdi/Kodik через iframe
-    // Вони самі знайдуть фільм за назвою та роком
     const playerOverlay = document.getElementById('player-overlay');
     const iframe = document.getElementById('video-frame');
     
-    // Формуємо пошуковий запит для безкоштовного плеєра (Voidboost / Ashdi)
-    // Це приклад універсального ембеда, який шукає по назві
+    // ВБУДОВАНИЙ ПЛЕЄР:
+    // Використовуємо VidSrc (найкращий варіант для TMDB ID)
+    // Він знаходить фільм автоматично і показує його без зайвих налаштувань.
+    
+    // Якщо ID є (а ми його додали в renderCards), то все супер.
+    const tmdbId = data.id;
     const title = encodeURIComponent(data.title);
-    const orig = encodeURIComponent(data.orig_title);
-    const year = data.year;
     
-    // Використовуємо 2embed або подібний агрегатор (для прикладу)
-    // Або можна використати прямий пошук в Google/Kodik
-    // Тут ми використаємо трюк: завантажимо плеєр Ashdi через пошук
-    // Або ще простіше: Kinovod / UAKino embed
+    let streamUrl = '';
     
-    // ВАРІАНТ 1: SuperEmbed (працює для TMDB ID, якщо він є)
-    // Але в dataset ми не зберегли ID. Треба виправити renderCards, але поки спробуємо по назві.
+    if (tmdbId) {
+        // VidSrc.to (Стабільний, працює з TMDB ID)
+        streamUrl = `https://vidsrc.to/embed/movie/${tmdbId}`;
+    } else {
+        // Резерв: Пошук по назві через Voidboost
+        streamUrl = `https://voidboost.net/embed/movie?title=${title}`;
+    }
     
-    // Давай просто відкриємо Google для тесту, або UAKino
-    // Щоб це реально працювало як Лампа, треба парсер.
-    // Але для XOTT ми зробимо хитрість:
-    // Ми відкриємо універсальний плеєр "Ashdi" з пошуком
+    // Для України також добре працює Ashdi, якщо VidSrc блокується:
+    // streamUrl = `https://ashdi.vip/vod/search?title=${title}`;
     
-    const streamUrl = `https://voidboost.net/embed/movie?title=${title}&year=${year}`; 
-    // Це приклад. Реально краще поставити плагін.
-    // АЛЕ, оскільки ти просив "встроєний", ми дамо тобі 
-    // доступ до кращого безкоштовного плеєра:
+    console.log('Відкриваю плеєр:', streamUrl);
     
-    // Використаємо '2embed.cc' (вимагає TMDB ID)
-    // У renderCards ми не зберегли id, давай виправимо це в наступному оновленні.
-    // Поки що - просто Alert, що плеєр відкривається.
-    
+    iframe.src = streamUrl;
     playerOverlay.classList.add('active');
     
-    // Демонстрація (тут має бути URL реального балансера)
-    // iframe.src = `https://www.2embed.cc/embed/${data.id}`; 
-    // Оскільки ID немає, давай просто покажемо YouTube трейлер :)
-    iframe.src = `https://www.youtube.com/embed?listType=search&list=trailer+${title}+${year}`;
-    
     Controller.currentContext = 'player';
-    document.querySelector('.btn-close').focus();
+    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
 function closePlayer() {
@@ -148,10 +137,9 @@ function addPlugin() {
     inp.value = '';
 }
 
-
-// --- CONTROLLER & NAVIGATION ---
+// --- CONTROLLER ---
 const Controller = {
-    targets: [], idx: 0, currentContext: 'app', // app | modal | player
+    targets: [], idx: 0, currentContext: 'app',
 
     scan: function() {
         if(this.currentContext === 'player') {
@@ -198,13 +186,13 @@ const Controller = {
     }
 };
 
-// --- UI FUNCTIONS ---
+// --- UI ---
 function showScreen(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + name).classList.add('active');
     document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('focus'));
     if(name === 'main' && document.getElementById('main-row').innerHTML === '') loadMain();
-    if(name === 'settings') Plugins.renderList(); // Показати список плагінів
+    if(name === 'settings') Plugins.renderList();
     setTimeout(() => { Controller.idx = 0; Controller.scan(); Controller.focus(); }, 100);
 }
 
@@ -222,7 +210,7 @@ async function doSearch() {
 }
 
 function openModal(data) {
-    window.currentMovieData = data; // Зберігаємо для плеєра
+    window.currentMovieData = data;
     document.getElementById('m-title').innerText = data.title;
     document.getElementById('m-poster').style.backgroundImage = `url('${data.img}')`;
     document.getElementById('m-year').innerText = data.year;
@@ -237,9 +225,9 @@ function closeModal() {
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
-// --- START ---
+// --- INIT ---
 window.onload = () => {
-    Plugins.init(); // Завантаження плагінів
+    Plugins.init();
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
     
     document.addEventListener('keydown', e => {
@@ -259,6 +247,7 @@ window.onload = () => {
     });
     
     const sBtn = document.getElementById('do-search'); if(sBtn) sBtn.onclick = doSearch;
+    const addP = document.getElementById('btn-add-plugin'); if(addP) addP.onclick = addPlugin;
 
     showScreen('main');
 };
