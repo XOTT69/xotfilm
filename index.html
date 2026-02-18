@@ -8,202 +8,62 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
         
-        :root {
-            --bg-color: #14171a;
-            --menu-bg: #1f2329;
-            --focus-color: #fff;
-            --text-color: #e0e0e0;
-            --accent: #4b76fb;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Open Sans', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            height: 100vh;
-        }
-
+        :root { --bg-color: #14171a; --menu-bg: #1f2329; --focus-color: #fff; --text-color: #e0e0e0; --accent: #4b76fb; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Open Sans', sans-serif; margin: 0; overflow: hidden; display: flex; height: 100vh; }
+        
         /* SIDEBAR */
-        .sidebar {
-            width: 80px;
-            background: var(--menu-bg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 30px;
-            z-index: 100;
-        }
+        .sidebar { width: 80px; background: var(--menu-bg); display: flex; flex-direction: column; align-items: center; padding-top: 30px; z-index: 100; }
+        .menu-item { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; border-radius: 10px; cursor: pointer; transition: all 0.2s; color: #aaa; font-size: 22px; }
+        .menu-item:hover, .menu-item.focus { background: var(--focus-color); color: #000; transform: scale(1.1); }
+        .menu-item.active-tab { color: var(--accent); }
 
-        .menu-item {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #aaa;
-            font-size: 22px;
-        }
-
-        .menu-item.focus {
-            background: var(--focus-color);
-            color: #000;
-            transform: scale(1.1);
-        }
-        
-        .menu-item.active-tab {
-            color: var(--accent);
-        }
-
-        /* MAIN CONTENT */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            background: radial-gradient(circle at top right, #1f2329 0%, #14171a 100%);
-        }
-
-        /* HEADER */
-        .header {
-            height: 80px;
-            display: flex;
-            align-items: center;
-            padding: 0 50px;
-            font-size: 26px;
-            font-weight: 300;
-            color: #fff;
-        }
+        /* MAIN */
+        .main { flex: 1; display: flex; flex-direction: column; position: relative; background: radial-gradient(circle at top right, #1f2329 0%, #14171a 100%); }
+        .header { height: 80px; display: flex; align-items: center; padding: 0 50px; font-size: 26px; font-weight: 300; color: #fff; }
         .header-title { flex: 1; }
-        .header-time { font-size: 22px; opacity: 0.7; font-weight: 400; }
+        .header-time { font-size: 22px; opacity: 0.7; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 0 50px 50px 50px; }
 
-        /* SCROLL AREA */
-        .scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 50px 50px 50px;
-        }
-
-        /* CARDS GRID (FIXED) */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Оптимальна ширина */
-            gap: 30px; /* Відступи між картками */
-            padding-top: 20px;
-        }
-
-        .card {
-            aspect-ratio: 2/3; /* Пропорції постера */
-            background: #222;
-            border-radius: 12px;
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: transform 0.2s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        .card.focus {
-            transform: scale(1.1);
-            border-color: #fff;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-            z-index: 10;
-        }
-        
-        .card-rating {
-            position: absolute;
-            top: 10px; right: 10px;
-            background: var(--accent);
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 700;
-        }
-        
-        .card-title {
-            position: absolute;
-            bottom: 0; left: 0; width: 100%;
-            padding: 40px 10px 15px 10px;
-            background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
-            color: #fff;
-            font-size: 15px;
-            font-weight: 600;
-            text-align: center;
-            border-radius: 0 0 12px 12px;
-            box-sizing: border-box;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        /* CARDS */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 30px; padding-top: 20px; }
+        .card { aspect-ratio: 2/3; background: #222; border-radius: 12px; background-size: cover; background-position: center; position: relative; cursor: pointer; border: 3px solid transparent; transition: transform 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .card:hover { transform: scale(1.05); border-color: #fff; z-index: 10; }
+        .card-rating { position: absolute; top: 10px; right: 10px; background: var(--accent); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 14px; font-weight: 700; }
+        .card-title { position: absolute; bottom: 0; left: 0; width: 100%; padding: 40px 10px 15px 10px; background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%); color: #fff; font-size: 15px; font-weight: 600; text-align: center; border-radius: 0 0 12px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
 
         /* FULL VIEW */
-        .full-view {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #14171a; z-index: 200; display: none;
-            flex-direction: row;
-        }
+        .full-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #14171a; z-index: 200; display: none; flex-direction: row; }
         .full-view.active { display: flex; }
-        
-        .full-bg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-size: cover; background-position: center; opacity: 0.15; z-index: 0;
-        }
-        
-        .full-left {
-            width: 400px; padding: 60px; z-index: 1;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        
-        .poster {
-            width: 300px; height: 450px; background-size: cover; border-radius: 16px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.8); margin-bottom: 30px;
-        }
-        
+        .full-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0.15; z-index: 0; }
+        .full-left { width: 400px; padding: 60px; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+        .poster { width: 300px; height: 450px; background-size: cover; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,0.8); margin-bottom: 30px; }
         .full-right { flex: 1; padding: 80px 80px 80px 0; z-index: 1; }
         .movie-title { font-size: 56px; font-weight: 700; margin-bottom: 15px; line-height: 1.1; }
         .movie-meta { font-size: 20px; color: #aaa; margin-bottom: 30px; }
         .movie-descr { font-size: 18px; line-height: 1.6; color: #ccc; margin-bottom: 50px; max-width: 900px; }
-        
         .buttons-row { display: flex; gap: 20px; }
-        
-        .btn {
-            padding: 15px 35px; border-radius: 10px; font-size: 18px; font-weight: 600;
-            background: rgba(255,255,255,0.1); color: #fff; cursor: pointer;
-            border: 2px solid transparent; display: flex; align-items: center; gap: 12px;
-        }
-        .btn:hover, .btn.focus { background: #fff; color: #000; transform: scale(1.05); }
+        .btn { padding: 15px 35px; border-radius: 10px; font-size: 18px; font-weight: 600; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; border: 2px solid transparent; display: flex; align-items: center; gap: 12px; }
+        .btn:hover { background: #fff; color: #000; transform: scale(1.05); }
         .btn-primary { background: #fff; color: #000; }
-        .btn-primary:hover, .btn-primary.focus { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent); color: #fff; }
 
-        /* PLAYER */
+        /* PLAYER & LOADER */
         .player-frame { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 300; display: none; }
-        .player-frame.active { display: block; }
         iframe { width: 100%; height: 100%; border: none; }
-        
         .loader { position: absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size: 24px; color: #666; }
         
-        /* SEARCH INPUT */
+        /* SEARCH */
         #search-input { outline: none; transition: all 0.2s; }
-        #search-input:focus, #search-input.focus { background: #333; box-shadow: 0 0 0 2px var(--accent); }
-
+        #search-input:focus { background: #333; box-shadow: 0 0 0 2px var(--accent); }
     </style>
 </head>
 <body>
 
-    <div class="sidebar" id="sidebar">
-        <!-- data-action="home" - це важливо для JS -->
-        <div class="menu-item focus active-tab" onclick="switchTab('home')"><i class="fas fa-home"></i></div>
-        <div class="menu-item" onclick="switchTab('search')"><i class="fas fa-search"></i></div>
-        <div class="menu-item" onclick="openSettings()"><i class="fas fa-cog"></i></div>
+    <div class="sidebar">
+        <!-- ТУТ ID ДЛЯ КОЖНОЇ КНОПКИ -->
+        <div class="menu-item active-tab" id="home-btn"><i class="fas fa-home"></i></div>
+        <div class="menu-item" id="search-btn"><i class="fas fa-search"></i></div>
+        <div class="menu-item" id="settings-btn"><i class="fas fa-cog"></i></div>
     </div>
 
     <div class="main">
@@ -212,12 +72,11 @@
             <div class="header-time" id="clock">00:00</div>
         </div>
 
-        <div class="scroll-area" id="scroll-area">
+        <div class="scroll-area">
             <div id="screen-home" class="screen active">
                 <div class="cards-grid" id="home-grid"></div>
                 <div class="loader" id="home-loader">Завантаження...</div>
             </div>
-
             <div id="screen-search" class="screen" style="display:none">
                 <input type="text" id="search-input" placeholder="Пошук..." style="width:100%; padding:20px; background:#222; border:none; color:#fff; font-size:22px; border-radius:10px; margin-bottom:30px;">
                 <div class="cards-grid" id="search-grid"></div>
@@ -225,30 +84,17 @@
         </div>
     </div>
 
-    <!-- FULL VIEW -->
     <div id="full-view" class="full-view">
         <div class="full-bg" id="full-bg"></div>
-        <div class="full-left">
-            <div class="poster" id="full-poster"></div>
-        </div>
+        <div class="full-left"><div class="poster" id="full-poster"></div></div>
         <div class="full-right">
-            <div class="movie-title" id="full-title">Назва</div>
-            <div class="movie-meta">
-                <span id="full-year">2024</span> • <span id="full-rating">0.0</span>
-            </div>
-            <div class="movie-descr" id="full-descr">Опис...</div>
-            
+            <div class="movie-title" id="full-title"></div>
+            <div class="movie-meta"><span id="full-year"></span> • <span id="full-rating"></span></div>
+            <div class="movie-descr" id="full-descr"></div>
             <div class="buttons-row">
-                <div class="btn btn-primary" id="btn-play">
-                    <i class="fas fa-play"></i> Дивитись
-                </div>
-                <!-- Кнопка Filmix з'явиться тут через JS якщо є токен -->
-                <div class="btn" id="btn-filmix" style="display:none; background:#4b76fb; color:#fff">
-                    <i class="fas fa-crown"></i> Filmix PRO
-                </div>
-                <div class="btn" id="btn-back">
-                    <i class="fas fa-arrow-left"></i> Назад
-                </div>
+                <div class="btn btn-primary" id="btn-play"><i class="fas fa-play"></i> Дивитись</div>
+                <div class="btn" id="btn-filmix" style="display:none; background:#4b76fb; color:#fff"><i class="fas fa-crown"></i> Filmix PRO</div>
+                <div class="btn" id="btn-back"><i class="fas fa-arrow-left"></i> Назад</div>
             </div>
         </div>
     </div>
