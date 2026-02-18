@@ -1,39 +1,10 @@
 /* ==========================================
-   XOTT CORE v17.0 (Direct Alloha/Voidboost API)
+   XOTT CORE v21.0 (Lampa Style UI)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
-
-// ALLOHA (VOIDBOOST) - це те, що використовує Lampac для озвучок
-const ALLOHA_API = 'https://api.alloha.tv';
-
-// --- ALLOHA CLIENT (REAL LAMPAC LOGIC) ---
-const Alloha = {
-    async search(tmdbId, title, year) {
-        console.log('Alloha searching:', tmdbId);
-        
-        try {
-            // Запит до Alloha API (це публічне API, не потребує ключів)
-            const url = `${ALLOHA_API}/?token=&imdb=${tmdbId}`;
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-            
-            const res = await fetch(proxyUrl);
-            const data = await res.json();
-            
-            if (data && data.data) {
-                console.log('Alloha data:', data);
-                return data.data;
-            }
-            
-            return null;
-        } catch(e) {
-            console.error('Alloha error:', e);
-            return null;
-        }
-    }
-};
 
 // --- STANDARD API ---
 const Api = {
@@ -54,6 +25,7 @@ function renderCards(d, c, a=false) {
         if(!i.poster_path) return;
         let el = document.createElement('div'); el.className = 'card'; el.tabIndex = -1;
         el.dataset.id = i.id; el.dataset.title = i.title || i.name; el.dataset.img = IMG_URL + i.poster_path;
+        el.dataset.year = (i.release_date || i.first_air_date || '').substr(0,4);
         el.innerHTML = `<div class="card-img" style="background-image:url('${IMG_URL+i.poster_path}')"><div class="rating-badge">${i.vote_average.toFixed(1)}</div></div><div class="card-title">${i.title||i.name}</div>`;
         el.onclick = (e) => { e.stopPropagation(); openModal(i); }; 
         con.appendChild(el);
@@ -75,52 +47,73 @@ function openModal(data) {
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
-// --- SOURCES WITH ALLOHA ---
-async function showSources(data) {
+// --- LAMPA STYLE MENU ---
+function showSources(data) {
     window.currentMovieData = data;
     const list = document.getElementById('source-list');
     const panel = document.getElementById('source-selector');
     
-    list.innerHTML = '<div class="loader">Шукаю озвучки через Alloha API...</div>';
+    // Стилізуємо заголовок меню під Lampa
+    const title = document.querySelector('.source-title');
+    if (title) {
+        title.innerHTML = '<i class="fas fa-play-circle" style="margin-right:10px; color:#4b76fb"></i>Вибір джерела';
+        title.style.borderBottom = 'none';
+        title.style.paddingBottom = '0';
+        title.style.marginBottom = '20px';
+        title.style.fontSize = '22px';
+        title.style.fontWeight = '300';
+    }
+
+    // Список джерел з "нормальними" назвами та іконками
+    const sources = [
+        { 
+            name: 'Lampa (Auto)', 
+            meta: 'Рекомендовано • 1080p', 
+            id: 'vidsrc_pro', 
+            icon: 'fa-bolt',
+            color: '#4b76fb'
+        },
+        { 
+            name: 'Rezka / Filmix', 
+            meta: 'Українська озвучка (UA/RU)', 
+            id: 'superembed', 
+            icon: 'fa-globe-europe',
+            color: '#ffdd57'
+        },
+        { 
+            name: 'Kodik', 
+            meta: 'Список озвучок (HD)', 
+            id: 'kodik', 
+            icon: 'fa-list-ul',
+            color: '#48c774'
+        },
+        { 
+            name: 'VidSrc (ENG)', 
+            meta: 'Original Audio / Subtitles', 
+            id: 'vidsrc_to', 
+            icon: 'fa-closed-captioning',
+            color: '#fff'
+        }
+    ];
+
+    // Генеруємо HTML, схожий на меню Lampa (список)
+    list.innerHTML = sources.map(s => `
+        <div class="source-item focusable" onclick="playMovie('${s.id}')" style="flex-direction: row; align-items: center; padding: 15px 20px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 10px; border: 2px solid transparent; transition: all 0.2s">
+            <div style="width: 40px; text-align: center; margin-right: 15px;">
+                <i class="fas ${s.icon}" style="font-size: 24px; color: ${s.color}"></i>
+            </div>
+            <div style="flex: 1;">
+                <div class="source-name" style="font-size: 18px; font-weight: 500; margin-bottom: 3px;">${s.name}</div>
+                <div class="source-meta" style="font-size: 13px; opacity: 0.6;">${s.meta}</div>
+            </div>
+            <div style="opacity: 0.3;">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+    `).join('');
+
     panel.classList.add('active');
     Controller.currentContext = 'sources';
-    
-    // Спробуємо отримати дані з Alloha (як робить Lampac)
-    const allohaData = await Alloha.search(data.id, data.title, (data.release_date || '').substr(0,4));
-    
-    let html = '';
-    
-    if (allohaData && allohaData.quality) {
-        // Якщо Alloha знайшов джерела
-        html += `<div style="padding:10px; color:#888; font-size:12px">ЗНАЙДЕНО ЧЕРЕЗ ALLOHA:</div>`;
-        
-        for (let quality in allohaData.quality) {
-            const url = allohaData.quality[quality];
-            html += `
-                <div class="source-item focusable" onclick="playMovie('custom', '${url}')">
-                    <div class="source-name">Alloha - ${quality}</div>
-                    <div class="source-meta">Пряме посилання (HLS)</div>
-                </div>
-            `;
-        }
-    } else {
-        html += `<div style="padding:20px; text-align:center; color:#666">Alloha не знайшов джерел.<br>Використовую резервні плеєри:</div>`;
-    }
-    
-    // Резервні джерела (завжди працюють)
-    html += `<div style="padding:10px; color:#888; font-size:12px; margin-top:10px">УНІВЕРСАЛЬНІ ПЛЕЄРИ:</div>`;
-    html += `
-        <div class="source-item focusable" onclick="playMovie('vidsrc_pro')">
-            <div class="source-name">VidSrc PRO</div>
-            <div class="source-meta">Основний плеєр (VipStream)</div>
-        </div>
-        <div class="source-item focusable" onclick="playMovie('superembed')">
-            <div class="source-name">SuperEmbed (Rezka)</div>
-            <div class="source-meta">Резерв</div>
-        </div>
-    `;
-
-    list.innerHTML = html;
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
@@ -132,13 +125,13 @@ function playMovie(sourceId, customUrl) {
     if (!customUrl) {
         if(sourceId === 'vidsrc_pro') url = `https://vidsrc.me/embed/movie?tmdb=${data.id}`;
         if(sourceId === 'superembed') url = `https://multiembed.mov/?video_id=${data.id}&tmdb=1`;
+        if(sourceId === 'kodik') url = `https://kodik.info/find-player?tmdbID=${data.id}&types=film,serial&camrip=false`;
+        if(sourceId === 'vidsrc_to') url = `https://vidsrc.to/embed/movie/${data.id}`;
     }
     
-    // Якщо це HLS потік (.m3u8), відкриваємо через спеціальний плеєр
-    if (url.includes('.m3u8')) {
-        url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
-    }
-    
+    if (url.includes('.m3u8')) url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
+    if (url.startsWith('//')) url = 'https:' + url;
+
     iframe.src = url;
     document.getElementById('player-overlay').classList.add('active');
     document.getElementById('source-selector').classList.remove('active');
