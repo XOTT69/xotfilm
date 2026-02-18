@@ -1,140 +1,97 @@
 /* ==========================================
-   XOTT CORE v21.0 (Lampa Style UI)
+   XOTT CORE v22.0 (Lampa Native UI)
    ========================================== */
 
 const API_KEY = 'c3d325262a386fc19e9cb286c843c829'; 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+const BACK_URL = 'https://image.tmdb.org/t/p/original';
 
-// --- STANDARD API ---
 const Api = {
-    currentPage: 1, isLoading: false,
-    async get(m, p='') {
-        let u = `${BASE_URL}/${m}?api_key=${API_KEY}&language=uk-UA${p}`;
-        try { let r = await fetch(u); if(!r.ok) throw 0; return await r.json(); }
-        catch(e) { let px = 'https://corsproxy.io/?' + encodeURIComponent(u); let rp = await fetch(px); return rp.ok ? await rp.json() : null; }
-    },
-    async loadTrending(p=1) { return await this.get('trending/movie/week', `&page=${p}`); },
-    async search(q) { return await this.get('search/movie', `&query=${encodeURIComponent(q)}`); }
+    async get(m,p=''){ try{ let r=await fetch(`${BASE_URL}/${m}?api_key=${API_KEY}&language=uk-UA${p}`); return await r.json()} catch(e){return null}},
+    async loadTrending(p=1){return await this.get('trending/movie/week',`&page=${p}`)},
+    async search(q){return await this.get('search/movie',`&query=${encodeURIComponent(q)}`)}
 };
 
-function renderCards(d, c, a=false) {
-    const con = document.getElementById(c); if(!a) con.innerHTML = '';
-    if(!d || !d.results?.length) { if(!a) con.innerHTML = '<div style="padding:20px;color:#666">Пусто</div>'; return; }
+function renderCards(d, c) {
+    const con = document.getElementById(c); con.innerHTML='';
+    if(!d?.results?.length) return;
     d.results.forEach(i => {
         if(!i.poster_path) return;
-        let el = document.createElement('div'); el.className = 'card'; el.tabIndex = -1;
-        el.dataset.id = i.id; el.dataset.title = i.title || i.name; el.dataset.img = IMG_URL + i.poster_path;
-        el.dataset.year = (i.release_date || i.first_air_date || '').substr(0,4);
-        el.innerHTML = `<div class="card-img" style="background-image:url('${IMG_URL+i.poster_path}')"><div class="rating-badge">${i.vote_average.toFixed(1)}</div></div><div class="card-title">${i.title||i.name}</div>`;
-        el.onclick = (e) => { e.stopPropagation(); openModal(i); }; 
+        let el = document.createElement('div'); el.className='card focusable';
+        el.innerHTML=`<div class="card-img" style="background-image:url('${IMG_URL+i.poster_path}')"></div><div class="card-title">${i.title||i.name}</div><div class="rating-badge">${i.vote_average.toFixed(1)}</div>`;
+        el.onclick = () => openView(i);
         con.appendChild(el);
     });
 }
 
-function openModal(data) {
+// --- VIEW SCREEN LOGIC ---
+function openView(data) {
     window.currentMovieData = data;
-    document.getElementById('m-title').innerText = data.title || data.name;
-    document.getElementById('m-poster').style.backgroundImage = `url('${IMG_URL + data.poster_path}')`;
-    document.getElementById('m-year').innerText = (data.release_date || data.first_air_date || '').substr(0,4);
-    document.getElementById('m-rating').innerText = data.vote_average || 0;
-    document.getElementById('m-descr').innerText = data.overview || 'Опису немає.';
     
-    document.getElementById('btn-watch').onclick = () => showSources(data);
-
-    document.getElementById('modal').classList.add('active');
-    Controller.currentContext = 'modal';
-    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
-}
-
-// --- LAMPA STYLE MENU ---
-function showSources(data) {
-    window.currentMovieData = data;
-    const list = document.getElementById('source-list');
-    const panel = document.getElementById('source-selector');
+    // Заповнюємо інфу
+    document.getElementById('v-title').innerText = data.title || data.name;
+    document.getElementById('v-year').innerText = (data.release_date || data.first_air_date || '').substr(0,4);
+    document.getElementById('v-rating').innerHTML = `<i class="fas fa-star"></i> ${data.vote_average.toFixed(1)}`;
+    document.getElementById('v-descr').innerText = data.overview || 'Опис відсутній.';
+    document.getElementById('v-poster').style.backgroundImage = `url('${IMG_URL + data.poster_path}')`;
     
-    // Стилізуємо заголовок меню під Lampa
-    const title = document.querySelector('.source-title');
-    if (title) {
-        title.innerHTML = '<i class="fas fa-play-circle" style="margin-right:10px; color:#4b76fb"></i>Вибір джерела';
-        title.style.borderBottom = 'none';
-        title.style.paddingBottom = '0';
-        title.style.marginBottom = '20px';
-        title.style.fontSize = '22px';
-        title.style.fontWeight = '300';
+    // Фон (Backdrop)
+    const viewScreen = document.getElementById('view-screen');
+    if (data.backdrop_path) {
+        viewScreen.style.backgroundImage = `url('${BACK_URL + data.backdrop_path}')`;
+    } else {
+        viewScreen.style.backgroundColor = '#111';
     }
 
-    // Список джерел з "нормальними" назвами та іконками
+    // Генеруємо список джерел (як сірі блоки на скріні)
+    const sourcesBox = document.getElementById('v-sources');
+    sourcesBox.innerHTML = '';
+    
     const sources = [
-        { 
-            name: 'Lampa (Auto)', 
-            meta: 'Рекомендовано • 1080p', 
-            id: 'vidsrc_pro', 
-            icon: 'fa-bolt',
-            color: '#4b76fb'
-        },
-        { 
-            name: 'Rezka / Filmix', 
-            meta: 'Українська озвучка (UA/RU)', 
-            id: 'superembed', 
-            icon: 'fa-globe-europe',
-            color: '#ffdd57'
-        },
-        { 
-            name: 'Kodik', 
-            meta: 'Список озвучок (HD)', 
-            id: 'kodik', 
-            icon: 'fa-list-ul',
-            color: '#48c774'
-        },
-        { 
-            name: 'VidSrc (ENG)', 
-            meta: 'Original Audio / Subtitles', 
-            id: 'vidsrc_to', 
-            icon: 'fa-closed-captioning',
-            color: '#fff'
-        }
+        { name: 'Lampa (Auto)', sub: 'VidSrc PRO • 1080p', id: 'vidsrc_pro', icon: 'fa-play' },
+        { name: 'Rezka / Filmix', sub: 'Альтернатива (UA/RU)', id: 'superembed', icon: 'fa-globe' },
+        { name: 'Kodik Player', sub: 'Озвучки (HD)', id: 'kodik', icon: 'fa-list' }
     ];
 
-    // Генеруємо HTML, схожий на меню Lampa (список)
-    list.innerHTML = sources.map(s => `
-        <div class="source-item focusable" onclick="playMovie('${s.id}')" style="flex-direction: row; align-items: center; padding: 15px 20px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 10px; border: 2px solid transparent; transition: all 0.2s">
-            <div style="width: 40px; text-align: center; margin-right: 15px;">
-                <i class="fas ${s.icon}" style="font-size: 24px; color: ${s.color}"></i>
+    sources.forEach(s => {
+        let el = document.createElement('div');
+        el.className = 'source-card focusable';
+        el.onclick = () => playMovie(s.id);
+        el.innerHTML = `
+            <div class="source-icon"><i class="fas ${s.icon}"></i></div>
+            <div class="source-info">
+                <div style="font-size:18px; font-weight:600; color:#fff">${s.name}</div>
+                <div style="font-size:14px; color:#888">${s.sub}</div>
             </div>
-            <div style="flex: 1;">
-                <div class="source-name" style="font-size: 18px; font-weight: 500; margin-bottom: 3px;">${s.name}</div>
-                <div class="source-meta" style="font-size: 13px; opacity: 0.6;">${s.meta}</div>
-            </div>
-            <div style="opacity: 0.3;">
-                <i class="fas fa-chevron-right"></i>
-            </div>
-        </div>
-    `).join('');
+        `;
+        sourcesBox.appendChild(el);
+    });
 
-    panel.classList.add('active');
-    Controller.currentContext = 'sources';
+    viewScreen.classList.add('active');
+    Controller.currentContext = 'view';
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
 
-function playMovie(sourceId, customUrl) {
-    const data = window.currentMovieData || {};
-    const iframe = document.getElementById('video-frame');
-    let url = customUrl || '';
+function closeView() {
+    document.getElementById('view-screen').classList.remove('active');
+    Controller.currentContext = 'app';
+    Controller.scan(); Controller.focus();
+}
 
-    if (!customUrl) {
-        if(sourceId === 'vidsrc_pro') url = `https://vidsrc.me/embed/movie?tmdb=${data.id}`;
-        if(sourceId === 'superembed') url = `https://multiembed.mov/?video_id=${data.id}&tmdb=1`;
-        if(sourceId === 'kodik') url = `https://kodik.info/find-player?tmdbID=${data.id}&types=film,serial&camrip=false`;
-        if(sourceId === 'vidsrc_to') url = `https://vidsrc.to/embed/movie/${data.id}`;
-    }
+// --- PLAYER ---
+function playMovie(id) {
+    const data = window.currentMovieData;
+    let url = '';
+    if(id==='vidsrc_pro') url = `https://vidsrc.me/embed/movie?tmdb=${data.id}`;
+    if(id==='superembed') url = `https://multiembed.mov/?video_id=${data.id}&tmdb=1`;
+    if(id==='kodik') url = `https://kodik.info/find-player?tmdbID=${data.id}&types=film,serial&camrip=false`;
     
-    if (url.includes('.m3u8')) url = `https://www.hlsplayer.net/embed?type=m3u8&src=${encodeURIComponent(url)}`;
+    // Fix for Kodik
     if (url.startsWith('//')) url = 'https:' + url;
 
-    iframe.src = url;
+    document.getElementById('video-frame').src = url;
     document.getElementById('player-overlay').classList.add('active');
-    document.getElementById('source-selector').classList.remove('active');
     Controller.currentContext = 'player';
     setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
 }
@@ -142,32 +99,25 @@ function playMovie(sourceId, customUrl) {
 function closePlayer() {
     document.getElementById('player-overlay').classList.remove('active');
     document.getElementById('video-frame').src = '';
-    document.getElementById('source-selector').classList.add('active');
-    Controller.currentContext = 'sources';
+    Controller.currentContext = 'view';
     Controller.scan(); Controller.focus();
 }
 
-function closeSources() {
-    document.getElementById('source-selector').classList.remove('active');
-    Controller.currentContext = 'modal';
-    Controller.scan(); Controller.focus();
-}
-
-function closeModal() {
-    document.getElementById('modal').classList.remove('active');
-    Controller.currentContext = 'app';
-    setTimeout(() => { Controller.scan(); Controller.idx = 0; Controller.focus(); }, 100);
-}
-
-async function loadMore() { if(Api.isLoading) return; Api.isLoading=true; Api.currentPage++; let d=await Api.loadTrending(Api.currentPage); if(d) renderCards(d,'main-row',true); Api.isLoading=false; Controller.scan(); }
-
+// --- CONTROLLER ---
 const Controller = {
     targets: [], idx: 0, currentContext: 'app',
     scan: function() {
         if(this.currentContext === 'player') this.targets = [document.querySelector('.btn-close')];
-        else if(this.currentContext === 'sources') { const l=document.getElementById('source-list'); const i=Array.from(l.querySelectorAll('.source-item')); const c=document.querySelector('#source-selector .modal-btn'); this.targets=[...i,c]; }
-        else if(this.currentContext === 'modal') this.targets = Array.from(document.querySelectorAll('.modal-btn'));
-        else { let s=document.querySelector('.screen.active'); let m=Array.from(document.querySelectorAll('.menu-items .menu-btn')); let c=s?Array.from(s.querySelectorAll('.focusable,.card,input,.btn')): []; this.targets=[...m,...c]; }
+        else if(this.currentContext === 'view') {
+            // В режимі перегляду фокус тільки на джерелах (права колонка)
+            this.targets = Array.from(document.querySelectorAll('#v-sources .source-card'));
+        }
+        else { // App (Main Screen)
+            let s = document.querySelector('.screen.active');
+            let m = Array.from(document.querySelectorAll('.menu-btn')); // Якщо будуть
+            let c = s ? Array.from(s.querySelectorAll('.focusable')) : [];
+            this.targets = [...m, ...c];
+        }
         if(this.idx >= this.targets.length) this.idx = 0;
     },
     focus: function() {
@@ -175,46 +125,56 @@ const Controller = {
         if(this.targets[this.idx]) {
             let el = this.targets[this.idx]; el.classList.add('focus');
             el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            if(this.currentContext === 'app' && this.idx > this.targets.length - 5) loadMore();
-            if(el.tagName === 'INPUT') el.focus(); else if(document.activeElement) document.activeElement.blur();
         }
     },
-    move: function(d) { this.scan(); if(!this.targets.length) return; const c=(this.currentContext==='app')?5:1; if(d==='right')this.idx++; if(d==='left')this.idx--; if(d==='down')this.idx+=(this.targets[this.idx]?.classList.contains('menu-btn'))?1:c; if(d==='up'){this.idx-=c;if(this.idx<0)this.idx=0;} if(this.idx<0)this.idx=0; if(this.idx>=this.targets.length)this.idx=this.targets.length-1; this.focus(); },
-    enter: function() { let el=this.targets[this.idx]; if(!el)return; if(el.classList.contains('menu-btn'))showScreen(el.dataset.action); else if(el.classList.contains('card'))openModal(window.currentMovieData || el.dataset); else if(el.id==='do-search')doSearch(); else if(el.onclick)el.click(); }
+    move: function(d) { 
+        this.scan(); if(!this.targets.length) return; 
+        const cols = (this.currentContext === 'app') ? 6 : 1; // 6 карток в рядок
+        if(d==='right') this.idx++; 
+        if(d==='left') this.idx--; 
+        if(d==='down') this.idx += cols; 
+        if(d==='up') this.idx -= cols;
+        
+        if(this.idx < 0) this.idx = 0;
+        if(this.idx >= this.targets.length) this.idx = this.targets.length-1;
+        this.focus(); 
+    },
+    enter: function() { 
+        let el = this.targets[this.idx]; 
+        if(el && el.onclick) el.onclick();
+        else if(el && el.id === 'search-input') el.focus();
+    }
 };
 
-function showScreen(n) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-'+n).classList.add('active');
-    document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('focus'));
-    if(n==='main' && document.getElementById('main-row').innerHTML==='') loadMain();
-    Controller.currentContext = 'app';
-    setTimeout(() => { Controller.idx = 0; Controller.scan(); Controller.focus(); }, 100);
-}
-
-async function loadMain() { let d=await Api.loadTrending(); if(d) renderCards(d, 'main-row'); }
-async function doSearch() { let q=document.getElementById('search-input').value; if(!q)return; document.getElementById('search-results').innerHTML='<div class="loader">Пошук...</div>'; let d=await Api.search(q); renderCards(d, 'search-results'); setTimeout(() => { Controller.scan(); Controller.idx = 2; Controller.focus(); }, 500); }
+async function loadMain(){ let d=await Api.loadTrending(); renderCards(d,'main-row'); setTimeout(()=>{Controller.scan(); Controller.idx=0; Controller.focus()}, 500); }
 
 window.onload = () => {
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
     document.addEventListener('keydown', e => {
-        if(e.code==='ArrowRight') Controller.move('right'); if(e.code==='ArrowLeft') Controller.move('left');
-        if(e.code==='ArrowDown') Controller.move('down'); if(e.code==='ArrowUp') Controller.move('up');
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) Controller.move(e.code.replace('Arrow','').toLowerCase());
         if(e.code==='Enter') Controller.enter();
         if(e.code==='Escape'||e.code==='Backspace') {
             if(Controller.currentContext==='player') closePlayer();
-            else if(Controller.currentContext==='sources') closeSources();
-            else if(Controller.currentContext==='modal') closeModal();
+            else if(Controller.currentContext==='view') closeView();
         }
     });
-    document.body.addEventListener('click', e => {
-        const t = e.target.closest('.menu-btn, .search-btn, .settings-item, .modal-btn, .btn, .btn-close, .source-item');
-        if(t) { Controller.scan(); Controller.idx = Controller.targets.indexOf(t); Controller.focus(); Controller.enter(); }
+    // Search Handler
+    document.getElementById('search-input').addEventListener('input', async (e) => {
+        if(e.target.value.length > 2) {
+            let d = await Api.search(e.target.value);
+            renderCards(d, 'search-results');
+            Controller.scan();
+        }
     });
     
-    const s = document.getElementById('do-search'); if(s) s.onclick = doSearch;
-    const c = document.querySelector('.content');
-    c.addEventListener('scroll', () => { if(c.scrollTop + c.clientHeight >= c.scrollHeight - 100) loadMore(); });
-    
-    showScreen('main');
+    // Switch Tabs Logic (Simple)
+    document.querySelectorAll('.menu-btn').forEach(b => {
+        b.onclick = () => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-' + b.dataset.action).classList.add('active');
+            Controller.currentContext = 'app'; Controller.scan(); Controller.focus();
+        }
+    });
+
+    loadMain();
 };
