@@ -1,150 +1,648 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monobank Тренажер 1:1</title>
-    <style>
-        :root {
-            --bg-primary: #000000;
-            --bg-secondary: #0a0a0a;
-            --accent-purple: rgba(128,126,255,0.8);
-            --accent-green: #00ff88;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg-primary); color: var(--text-primary); font-family: SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .iphone-frame {
-            width: 393px; height: 852px; /* iPhone 14 Pro */
-            background: linear-gradient(145deg, #1c1c1e, #0c0c0e);
-            border-radius: 48px; padding: 28px 24px;
-            box-shadow: 0 35px 100px rgba(0,0,0,0.7);
-            position: relative; overflow: hidden;
-        }
-        .iphone-frame::before {
-            content: ''; position: absolute; top: 32px; left: 50%;
-            width: 168px; height: 6px; background: #333; border-radius: 3px;
-            transform: translateX(-50%);
-        }
-        .status-bar {
-            padding: 12px 0 8px; display: flex; justify-content: space-between;
-            font-size: 15px; font-weight: 400;
-        }
-        .app-content { height: calc(100% - 120px); overflow-y: auto; padding: 0 16px; }
-        .chat-bubble {
-            margin: 8px 0; padding: 14px 18px; border-radius: 24px; max-width: 75%;
-            font-size: 16px; line-height: 1.4; backdrop-filter: blur(10px);
-        }
-        .bubble-client { background: var(--accent-purple); align-self: flex-end; margin-left: auto; }
-        .bubble-operator { background: rgba(0,255,136,0.15); border-left: 4px solid var(--accent-green); }
-        .balance-display {
-            text-align: center; margin: 24px 0; font-size: 40px; font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-green));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .block-btn {
-            width: 100%; height: 56px; background: var(--accent-green); color: #000;
-            border: none; border-radius: 28px; font-size: 17px; font-weight: 600;
-            margin: 20px 0; box-shadow: 0 12px 30px rgba(0,255,136,0.4);
-            cursor: pointer; transition: transform 0.2s;
-        }
-        .block-btn:active { transform: scale(0.98); }
-        .bottom-nav {
-            position: fixed; bottom: 28px; left: 24px; right: 24px;
-            background: rgba(10,10,12,0.95); backdrop-filter: blur(40px);
-            display: flex; padding: 12px 0; border-radius: 32px;
-            box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
-        }
-        .nav-item {
-            flex: 1; text-align: center; padding: 8px 4px; cursor: pointer;
-            font-size: 12px; font-weight: 500; transition: all 0.3s;
-            border-radius: 20px;
-        }
-        .nav-item.active { background: rgba(0,255,136,0.2); color: var(--accent-green); }
-        .operator-hint {
-            position: absolute; top: 20px; right: 20px; width: 220px;
-            background: rgba(0,0,0,0.9); padding: 16px; border-radius: 16px;
-            font-size: 14px; border-left: 4px solid var(--accent-green);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        .screen { display: none; }
-        .screen.active { display: block; height: 100%; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Training App Simulator</title>
+  <style>
+    :root{
+      --bg:#0b0b0d;
+      --panel:#111116;
+      --panel2:#171721;
+      --card:#14141b;
+      --text:#f4f4f6;
+      --muted:#a7a7b2;
+      --line:rgba(255,255,255,.08);
+      --accent:#7c6cff;     /* фіолет */
+      --ok:#20e07a;         /* зелений */
+      --shadow: 0 20px 70px rgba(0,0,0,.55);
+      --radius:18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(900px 500px at 50% -10%, rgba(124,108,255,.25) 0%, transparent 55%),
+        radial-gradient(700px 420px at 20% 110%, rgba(32,224,122,.18) 0%, transparent 60%),
+        var(--bg);
+      color:var(--text);
+      font: 14px/1.35 -apple-system, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+      display:flex;
+      justify-content:center;
+      padding:18px;
+    }
+
+    /* Desktop wrapper */
+    .wrap{
+      width:min(1100px, 100%);
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    /* Phone */
+    .phone{
+      width:390px;
+      height:844px;
+      border-radius:46px;
+      background: #000;
+      border: 14px solid rgba(255,255,255,.07);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:sticky;
+      top:18px;
+    }
+    .status{
+      height:54px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      padding:10px 16px 8px;
+      color:rgba(255,255,255,.85);
+      font-weight:600;
+      letter-spacing:.2px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .screen{
+      height:calc(100% - 54px - 78px);
+      overflow:auto;
+      padding:14px 14px 24px;
+    }
+    .screen::-webkit-scrollbar{ width:10px; }
+    .screen::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.08); border-radius:999px; }
+
+    .nav{
+      height:78px;
+      display:flex;
+      gap:6px;
+      padding:10px 10px 14px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      background: rgba(10,10,12,.92);
+      backdrop-filter: blur(16px);
+    }
+    .tab{
+      flex:1;
+      border:0;
+      background: transparent;
+      color: rgba(255,255,255,.7);
+      border-radius: 18px;
+      padding:10px 6px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      transition:.15s ease;
+      font-weight:600;
+      user-select:none;
+    }
+    .tab svg{ opacity:.85; }
+    .tab.active{
+      background: rgba(124,108,255,.16);
+      color: var(--text);
+      outline: 1px solid rgba(124,108,255,.22);
+    }
+
+    /* UI blocks */
+    .titleRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 2px 10px; }
+    .h1{ font-size:18px; font-weight:800; letter-spacing:.2px; }
+    .pill{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.82);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .card{
+      background: linear-gradient(135deg, rgba(124,108,255,.22), rgba(32,224,122,.10));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      padding:14px;
+      margin:10px 0;
+    }
+    .row{ display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .big{ font-size:34px; font-weight:900; letter-spacing:.4px; }
+    .muted{ color: var(--muted); font-weight:600; }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+      margin:10px 0 2px;
+    }
+    .action{
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding:10px 10px;
+      cursor:pointer;
+      color: var(--text);
+      font-weight:800;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
+      justify-content:center;
+      min-height:68px;
+    }
+
+    .panel{
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow:hidden;
+      margin:12px 0;
+    }
+    .panel h2{
+      margin:0;
+      padding:12px 12px;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.2px;
+      background: rgba(255,255,255,.03);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 12px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      cursor:pointer;
+    }
+    .item:first-of-type{ border-top:0; }
+    .left{ display:flex; gap:10px; align-items:center; min-width:0; }
+    .ico{
+      width:36px; height:36px;
+      border-radius: 12px;
+      display:grid; place-items:center;
+      background: rgba(124,108,255,.16);
+      border: 1px solid rgba(124,108,255,.20);
+      flex:0 0 auto;
+    }
+    .txt{ min-width:0; }
+    .txt .t{ font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .txt .s{ color:var(--muted); font-weight:700; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .r{ font-weight:900; color: rgba(255,255,255,.75); }
+
+    /* Operator hints */
+    .hint{
+      margin:10px 0;
+      background: rgba(32,224,122,.10);
+      border:1px solid rgba(32,224,122,.20);
+      border-left: 4px solid var(--ok);
+      padding:10px 12px;
+      border-radius: 14px;
+      color: rgba(255,255,255,.9);
+      font-weight:700;
+      display:none;
+    }
+    .hintsOn .hint{ display:block; }
+
+    /* Right side (desktop) */
+    .desk{
+      background: rgba(17,17,22,.78);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      padding:14px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+      backdrop-filter: blur(16px);
+    }
+    .desk h3{ margin:0 0 8px; font-size:14px; letter-spacing:.2px; }
+    .desk p{ margin:0 0 10px; color: var(--muted); font-weight:600; }
+    .desk .line{ height:1px; background: rgba(255,255,255,.08); margin:12px 0; }
+
+    .btn{
+      border:0;
+      background: rgba(124,108,255,.18);
+      color: var(--text);
+      outline: 1px solid rgba(124,108,255,.25);
+      padding:10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:900;
+      width:100%;
+      margin:6px 0;
+    }
+    .btn.ok{
+      background: rgba(32,224,122,.16);
+      outline-color: rgba(32,224,122,.25);
+    }
+
+    /* Modal */
+    .modalBack{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:18px;
+    }
+    .modalBack.open{ display:flex; }
+    .modal{
+      width:min(520px, 100%);
+      background: rgba(17,17,22,.92);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal .mhead{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-weight:900;
+    }
+    .modal .mbody{ padding:12px; color: rgba(255,255,255,.86); font-weight:700; }
+    .x{
+      border:0; background: transparent; color: rgba(255,255,255,.85);
+      font-size:18px; cursor:pointer; padding:6px 10px; border-radius:12px;
+    }
+    .watermark{
+      position:absolute; right:14px; top:62px;
+      color: rgba(255,255,255,.22);
+      font-weight:900;
+      font-size:11px;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      user-select:none;
+    }
+
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns: 1fr; justify-items:center; }
+      .phone{ position:relative; top:auto; }
+    }
+  </style>
 </head>
 <body>
-    <div class="iphone-frame">
-        <!-- Екран 1: Головний з чатом (точно як відео + твій скрін) -->
-        <div id="screen-main" class="screen active">
-            <div class="status-bar">
-                <span>16:25 EET</span>
-                <span>Іван Іванов</span>
-                <span>🔔 0</span>
-            </div>
-            <div class="app-content">
-                <div class="chat-bubble bubble-client">
-                    Потрібно заблокувати кредитку. Як?
-                </div>
-                <div class="chat-bubble bubble-operator">
-                    Дякуємо за звернення.<br>
-                    1. Перейдіть у меню "Картки"<br>
-                    2. Оберіть потрібну картку<br>
-                    3. Натисніть "Заблокувати"
-                </div>
-                <div class="balance-display">₴12 345</div>
-                <button class="block-btn" onclick="goToCards()">Заблокувати картку</button>
-            </div>
-            <div class="operator-hint">
-                <strong>Інструкція оператора:</strong><br>
-                • Запитайте причину блокування<br>
-                • Перевірте Apple Pay/Google Pay<br>
-                • Оформіть заявку в CRM
-            </div>
-        </div>
+  <div class="wrap">
+    <!-- Phone -->
+    <div class="phone" id="phone">
+      <div class="status">
+        <span id="time">16:31</span>
+        <span style="opacity:.85">Training</span>
+        <span style="opacity:.85">•••</span>
+      </div>
 
-        <!-- Екран 2: Картки (з відео) -->
-        <div id="screen-cards" class="screen">
-            <div class="status-bar">
-                <span onclick="backToMain()">←</span>
-                <span>Картки</span>
-                <span></span>
-            </div>
-            <div class="app-content">
-                <div class="chat-bubble">
-                    <strong>Кредитна картка</strong><br>
-                    **** **** **** 1234<br>
-                    Ліміт: ₴100 000<br>
-                    Довг: ₴87 655<br>
-                    Пільговий: 62 дні ➤
-                </div>
-                <button class="block-btn" onclick="simulateBlock()">Заблокувати</button>
-            </div>
-            <div class="operator-hint">Підтвердіть у клієнта номер картки. Зафіксуйте в заявці.</div>
-        </div>
+      <div class="watermark">DEMO • NO REAL DATA</div>
 
-        <!-- Нижнє меню (точно як у відео) -->
-        <div class="bottom-nav">
-            <div class="nav-item active" onclick="showScreen('main')">Головна</div>
-            <div class="nav-item" onclick="showScreen('cards')">Картки</div>
-            <div class="nav-item" onclick="showScreen('credits')">Кредити</div>
-            <div class="nav-item" onclick="showScreen('payments')">Платежі</div>
-            <div class="nav-item" onclick="showScreen('more')">Ще</div>
-        </div>
+      <div class="screen" id="screen">
+        <!-- rendered by JS -->
+      </div>
+
+      <div class="nav" id="nav">
+        <button class="tab active" data-tab="cards" title="Картки">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" opacity=".9"/>
+            <rect x="6" y="10" width="6" height="2" rx="1" fill="currentColor" opacity=".9"/>
+          </svg>
+          <span>Картки</span>
+        </button>
+        <button class="tab" data-tab="credits" title="Кредити">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M7 7h10v10H7z" stroke="currentColor" opacity=".9"/>
+            <path d="M9 12h6" stroke="currentColor" opacity=".9"/>
+          </svg>
+          <span>Кредити</span>
+        </button>
+        <button class="tab" data-tab="savings" title="Накопичення">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3v18" stroke="currentColor" opacity=".9"/>
+            <path d="M7 7h10" stroke="currentColor" opacity=".9"/>
+            <path d="M7 17h10" stroke="currentColor" opacity=".9"/>
+          </svg>
+          <span>Накопичення</span>
+        </button>
+        <button class="tab" data-tab="more" title="Ще">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="6" cy="12" r="1.6" fill="currentColor" opacity=".9"/>
+            <circle cx="12" cy="12" r="1.6" fill="currentColor" opacity=".9"/>
+            <circle cx="18" cy="12" r="1.6" fill="currentColor" opacity=".9"/>
+          </svg>
+          <span>Ще</span>
+        </button>
+        <button class="tab" data-tab="market" title="Маркет">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M6 8h12l-1 12H7L6 8z" stroke="currentColor" opacity=".9"/>
+            <path d="M9 8a3 3 0 0 1 6 0" stroke="currentColor" opacity=".9"/>
+          </svg>
+          <span>Маркет</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Прості скрипти для переходів -->
-    <script>
-        function showScreen(screen) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(`screen-${screen}`).classList.add('active');
-        }
-        function goToCards() { showScreen('cards'); }
-        function backToMain() { showScreen('main'); }
-        function simulateBlock() {
-            alert('✅ Картка заблокована!\nОператор: "Заблоковано. Нову можна оформити за 3 хв."');
-        }
-        // Додай інші екрани аналогічно
-    </script>
+    <!-- Desktop panel -->
+    <div class="desk">
+      <h3>Панель тренера</h3>
+      <p>Це “копія” за логікою (екрани/кнопки/навігація), але без реальних даних; тексти і сценарії можеш міняти прямо в JSON нижче.</p>
+
+      <button class="btn ok" id="toggleHints">Підказки оператора: Вимкнено</button>
+      <button class="btn" id="resetFlow">Скинути на стартовий екран</button>
+
+      <div class="line"></div>
+
+      <h3>Що далі зробимо швидко</h3>
+      <p>1) Додамо підменю “Картки → конкретна картка → ліміти/блокування/виписка”.</p>
+      <p>2) Додамо “Кредити/канікули/реструктуризації” як дерево екранів.</p>
+      <p>3) Додамо пошук по сценаріях для операторів.</p>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalBack" id="modalBack">
+    <div class="modal">
+      <div class="mhead">
+        <div id="mTitle">Дія</div>
+        <button class="x" id="mClose">×</button>
+      </div>
+      <div class="mbody" id="mBody"></div>
+    </div>
+  </div>
+
+<script>
+  // ----- State -----
+  const app = {
+    tab: 'cards',
+    route: 'root',
+    hints: false,
+  };
+
+  // Тут ми задаємо “копію” логіки без даних: екрани, секції, кнопки, переходи.
+  const ROUTES = {
+    cards: {
+      root: {
+        title: 'Картки',
+        rightPill: 'Усі',
+        hint: 'Оператор: попросіть клієнта відкрити вкладку “Картки”. Далі — “Усі картки” або вибір конкретної.',
+        blocks: [
+          { type:'card', big:'₴ 0', sub:'Демо баланс • Без реальних даних' },
+          { type:'grid3', actions:[
+            { id:'to_card', label:'Переказ на картку', go:['cards','to_card'] },
+            { id:'iban', label:'Платіж за IBAN', go:['cards','iban'] },
+            { id:'other', label:'Інші платежі', go:['cards','other_pay'] },
+          ]},
+          { type:'panel', title:'Операції', items:[
+            { t:'Вхідний переказ', s:'Демо операція', r:'+ ₴ 0', action:{ modal:'Операція', text:'Тут буде поп‑ап з підказкою оператору та умовними деталями.' } },
+            { t:'Покупка', s:'Демо мерчант', r:'− ₴ 0', action:{ modal:'Операція', text:'Немає реальних мерчантів/сум. Тільки тренування.' } },
+          ]},
+          { type:'panel', title:'Корисне', items:[
+            { t:'Ліміти та обмеження', s:'Для витрат з карток', r:'›', action:{ go:['cards','limits'] } },
+            { t:'Виписки та довідки', s:'Документи', r:'›', action:{ go:['cards','statements'] } },
+            { t:'Служба підтримки', s:'Чат/дзвінок', r:'›', action:{ go:['cards','support'] } },
+          ]},
+        ]
+      },
+
+      limits: {
+        title: 'Ліміти та обмеження',
+        hint: 'Оператор: поясніть, що тут клієнт налаштовує ліміти; далі уточніть, для якого типу операцій потрібен ліміт.',
+        blocks: [
+          { type:'panel', title:'Ліміти', items:[
+            { t:'Інтернет‑платежі', s:'Демо', r:'›', action:{ modal:'Інтернет‑платежі', text:'Тут буде форма з повзунком/перемикачем (додамо далі).' } },
+            { t:'Зняття готівки', s:'Демо', r:'›', action:{ modal:'Зняття', text:'Тренажер: без реальних сум.' } },
+          ]},
+        ]
+      },
+
+      statements: {
+        title: 'Виписки та довідки',
+        hint: 'Оператор: уточніть період і тип документа. Після цього — підкажіть шлях “Експорт/Надіслати”.',
+        blocks: [
+          { type:'panel', title:'Документи', items:[
+            { t:'Виписка за період', s:'PDF/CSV (демо)', r:'›', action:{ modal:'Виписка', text:'Далі можна зробити кроки: вибір дати → сформувати → надіслати.' } },
+            { t:'Довідка', s:'Демо', r:'›', action:{ modal:'Довідка', text:'Сюди додамо шаблони текстів для оператора.' } },
+          ]},
+        ]
+      },
+
+      support: {
+        title: 'Підтримка',
+        hint: 'Оператор: якщо клієнт у застосунку — ведіть його в чат; якщо ні — альтернативний канал.',
+        blocks: [
+          { type:'panel', title:'Канали', items:[
+            { t:'Чат у застосунку', s:'Тренажер', r:'›', action:{ modal:'Чат', text:'Тут зробимо готові фрази й макет діалогу.' } },
+            { t:'FAQ', s:'Поширені запитання', r:'›', action:{ modal:'FAQ', text:'Додамо базу питань/відповідей для операторів.' } },
+          ]},
+        ]
+      },
+
+      to_card: { title:'Переказ на картку', hint:'Оператор: попросіть номер картки/ПІБ (без збереження в тренажері).', blocks:[
+        { type:'panel', title:'Форма (демо)', items:[
+          { t:'Номер картки', s:'•••• •••• •••• ••••', r:'', action:{ modal:'Поле', text:'Тут буде інпут (демо), без реальних даних.' } },
+          { t:'Сума', s:'₴ 0', r:'', action:{ modal:'Поле', text:'Демо сума.' } },
+          { t:'Підтвердити', s:'', r:'›', action:{ modal:'Готово', text:'В тренажері це просто підтвердження кроку.' } },
+        ]}
+      ]},
+      iban: { title:'Платіж за IBAN', hint:'Оператор: уточніть IBAN і призначення платежу.', blocks:[
+        { type:'panel', title:'Кроки', items:[
+          { t:'IBAN', s:'UA••••', r:'', action:{ modal:'IBAN', text:'Демо поле.' } },
+          { t:'Призначення', s:'', r:'', action:{ modal:'Призначення', text:'Демо поле.' } },
+        ]}
+      ]},
+      other_pay: { title:'Інші платежі', hint:'Оператор: допоможіть знайти категорію/шаблон.', blocks:[
+        { type:'panel', title:'Категорії', items:[
+          { t:'Комунальні', s:'Демо', r:'›', action:{ modal:'Комунальні', text:'Додамо підекрани під твої сценарії.' } },
+          { t:'Мобільний', s:'Демо', r:'›', action:{ modal:'Мобільний', text:'Демо.' } },
+        ]}
+      ]},
+    },
+
+    credits: {
+      root: {
+        title: 'Кредити',
+        rightPill: 'Усі',
+        hint: 'Оператор: уточніть тип кредиту; далі ведіть по пункту меню.',
+        blocks: [
+          { type:'card', big:'₴ 0', sub:'Немає мінімального платежу (демо)' },
+          { type:'panel', title:'Розділи', items:[
+            { t:'Кредитні канікули', s:'Сценарій', r:'›', action:{ modal:'Канікули', text:'Додамо детальний скрипт оператора і кроки в тренажері.' } },
+            { t:'Реструктуризація', s:'Сценарій', r:'›', action:{ modal:'Реструктуризація', text:'Додамо кроки.' } },
+          ]},
+        ]
+      }
+    },
+
+    savings: { root:{ title:'Накопичення', hint:'Оператор: поясніть різницю між “банками/цілями/скарбничкою” (як у вашому продукті).', blocks:[
+      { type:'panel', title:'Накопичення (демо)', items:[
+        { t:'Банки', s:'Демо', r:'›', action:{ modal:'Банки', text:'Додамо екран/кроки.' } },
+        { t:'Цілі', s:'Демо', r:'›', action:{ modal:'Цілі', text:'Додамо екран/кроки.' } },
+      ]}
+    ]}},
+    more: { root:{ title:'Ще', hint:'Оператор: звідси — налаштування, довідки, підтримка.', blocks:[
+      { type:'panel', title:'Меню', items:[
+        { t:'Налаштування', s:'Демо', r:'›', action:{ modal:'Налаштування', text:'Додамо.' } },
+        { t:'Безпека', s:'Демо', r:'›', action:{ modal:'Безпека', text:'Додамо.' } },
+      ]}
+    ]}},
+    market: { root:{ title:'Маркет', hint:'Оператор: підкажіть, де знайти продукт/послугу.', blocks:[
+      { type:'panel', title:'Категорії', items:[
+        { t:'Послуги', s:'Демо', r:'›', action:{ modal:'Послуги', text:'Додамо.' } },
+        { t:'Страхування', s:'Демо', r:'›', action:{ modal:'Страхування', text:'Додамо.' } },
+      ]}
+    ]}},
+  };
+
+  // ----- Rendering -----
+  const $screen = document.getElementById('screen');
+  const $phone = document.getElementById('phone');
+
+  function currentRoute(){
+    const tab = ROUTES[app.tab] || {};
+    return tab[app.route] || tab.root;
+  }
+
+  function el(html){
+    const d = document.createElement('div');
+    d.innerHTML = html.trim();
+    return d.firstChild;
+  }
+
+  function render(){
+    const r = currentRoute();
+    $screen.innerHTML = '';
+
+    // Header row
+    const head = el(`
+      <div class="titleRow">
+        <div class="h1">${escapeHtml(r.title || '')}</div>
+        <button class="pill" id="pillBtn">${escapeHtml(r.rightPill || 'Усі')}</button>
+      </div>
+    `);
+    $screen.appendChild(head);
+
+    // Hint
+    const hint = el(`<div class="hint">${escapeHtml(r.hint || '')}</div>`);
+    $screen.appendChild(hint);
+
+    // Blocks
+    (r.blocks || []).forEach(b => {
+      if (b.type === 'card'){
+        $screen.appendChild(el(`
+          <div class="card">
+            <div class="row">
+              <div class="big">${escapeHtml(b.big || '₴ 0')}</div>
+              <div class="muted">demo</div>
+            </div>
+            <div class="muted" style="margin-top:6px;">${escapeHtml(b.sub || '')}</div>
+          </div>
+        `));
+      }
+      if (b.type === 'grid3'){
+        const g = el(`<div class="grid3"></div>`);
+        (b.actions || []).forEach(a => {
+          const btn = el(`<button class="action">${escapeHtml(a.label || '')}</button>`);
+          btn.onclick = () => navTo(a.go, a.modal);
+          g.appendChild(btn);
+        });
+        $screen.appendChild(g);
+      }
+      if (b.type === 'panel'){
+        const p = el(`<div class="panel"><h2>${escapeHtml(b.title || '')}</h2></div>`);
+        (b.items || []).forEach(it => {
+          const row = el(`
+            <div class="item">
+              <div class="left">
+                <div class="ico">⬤</div>
+                <div class="txt">
+                  <div class="t">${escapeHtml(it.t || '')}</div>
+                  <div class="s">${escapeHtml(it.s || '')}</div>
+                </div>
+              </div>
+              <div class="r">${escapeHtml(it.r || '')}</div>
+            </div>
+          `);
+          row.onclick = () => {
+            if (it.action?.go) navTo(it.action.go);
+            else if (it.action?.modal) openModal(it.action.modal, it.action.text || '');
+          };
+          p.appendChild(row);
+        });
+        $screen.appendChild(p);
+      }
+    });
+
+    // Hints toggle class
+    $phone.classList.toggle('hintsOn', app.hints);
+
+    // Pill action
+    document.getElementById('pillBtn').onclick = () => openModal('Дія', 'Це тренажер: тут можна підв’язати список “Усі/Фільтр/Пошук”.');
+  }
+
+  function navTo(go){
+    if (!go) return;
+    const [tab, route] = go;
+    app.tab = tab;
+    app.route = route || 'root';
+    syncTabs();
+    render();
+  }
+
+  function syncTabs(){
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === app.tab);
+    });
+  }
+
+  // ----- Modal -----
+  const $mb = document.getElementById('modalBack');
+  const $mt = document.getElementById('mTitle');
+  const $md = document.getElementById('mBody');
+  const $mc = document.getElementById('mClose');
+  $mc.onclick = () => $mb.classList.remove('open');
+  $mb.onclick = (e) => { if (e.target === $mb) $mb.classList.remove('open'); };
+
+  function openModal(title, body){
+    $mt.textContent = title || 'Дія';
+    $md.textContent = body || '';
+    $mb.classList.add('open');
+  }
+
+  // ----- Events -----
+  document.getElementById('nav').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    app.tab = btn.dataset.tab;
+    app.route = 'root';
+    syncTabs();
+    render();
+  });
+
+  document.getElementById('toggleHints').onclick = () => {
+    app.hints = !app.hints;
+    document.getElementById('toggleHints').textContent = `Підказки оператора: ${app.hints ? 'Увімкнено' : 'Вимкнено'}`;
+    render();
+  };
+
+  document.getElementById('resetFlow').onclick = () => {
+    app.tab = 'cards';
+    app.route = 'root';
+    syncTabs();
+    render();
+  };
+
+  // Clock (cosmetic)
+  function tick(){
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    document.getElementById('time').textContent = `${hh}:${mm}`;
+  }
+  setInterval(tick, 1000 * 15);
+  tick();
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  }
+
+  // Init
+  syncTabs();
+  render();
+</script>
 </body>
 </html>
