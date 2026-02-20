@@ -3,88 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monobank Тренажер для Операторів</title>
+    <title>Monobank Тренажер Операторів</title>
     <style>
-        body { margin: 0; background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .phone-frame { width: 375px; height: 812px; background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
-        .phone-frame::before { content: ''; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 150px; height: 5px; background: #333; border-radius: 10px; }
-        .app { height: 100%; position: relative; }
-        .header { padding: 20px 20px 10px; display: flex; justify-content: space-between; align-items: center; }
-        .balance { font-size: 36px; font-weight: bold; }
-        .menu { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); display: flex; padding: 10px 0; }
-        .menu-item { flex: 1; text-align: center; padding: 10px; cursor: pointer; transition: color 0.3s; }
-        .menu-item.active { color: #00ff88; }
-        .screen { display: none; padding: 20px; height: calc(100% - 120px); overflow-y: auto; }
-        .screen.active { display: block; }
-        .hint { background: rgba(0,255,136,0.1); border-left: 4px solid #00ff88; padding: 15px; margin: 20px 0; border-radius: 8px; }
-        .card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 16px; margin: 10px 0; }
-        button { background: #00ff88; color: black; border: none; padding: 12px 24px; border-radius: 24px; font-weight: bold; cursor: pointer; margin: 5px; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 20px; background: #000; font-family: -apple-system, system-ui, sans-serif; color: #fff; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .phone { width: 375px; height: 812px; background: #000; border: 20px solid #1a1a1a; border-radius: 50px; box-shadow: 0 30px 80px rgba(0,0,0,0.8); position: relative; overflow: hidden; }
+        .phone::before { content: ''; position: absolute; top: 15px; left: 50%; width: 140px; height: 6px; background: #333; transform: translateX(-50%); border-radius: 3px; }
+        .statusbar { padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 14px; background: rgba(0,0,0,0.5); }
+        .chat { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 20px; }
+        .message.client { background: rgba(128,126,255,0.3); align-self: flex-end; }
+        .message.operator { background: rgba(0,255,136,0.2); align-self: flex-start; border-left: 4px solid #00ff88; }
+        .balance { font-size: 32px; font-weight: 700; text-align: center; padding: 20px; background: linear-gradient(135deg, rgba(128,126,255,0.1) 0%, rgba(0,255,136,0.1) 100%); border-radius: 20px; margin: 20px; }
+        .action-btn { background: #00ff88; color: #000; border: none; padding: 16px 32px; border-radius: 28px; font-weight: 700; font-size: 16px; cursor: pointer; width: 100%; margin: 10px 20px; box-shadow: 0 8px 20px rgba(0,255,136,0.3); }
+        .bottom-menu { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); display: flex; padding: 12px 0; }
+        .menu-item { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-size: 12px; transition: all 0.3s; border-radius: 12px 12px 0 0; margin: 0 4px; }
+        .menu-item.active { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .hint { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 12px; font-size: 14px; margin: 10px 20px; border-left: 4px solid #00ff88; }
+        .screen { display: none; height: 100%; }
+        .screen.active { display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
-    <div class="phone-frame">
-        <div class="app">
-            <!-- Головна -->
-            <div id="home" class="screen active">
-                <div class="header">
-                    <div>👤 Іван Іванов</div>
-                    <div>🔔</div>
-                </div>
+    <div class="phone">
+        <!-- Головний екран з чатом -->
+        <div id="main" class="screen active">
+            <div class="statusbar">
+                <span>12:34</span>
+                <span>👤 Іван Іванов</span>
+                <span>🔔</span>
+            </div>
+            <div class="chat">
+                <div class="message client">Клієнт: Потрібно заблокувати кредитку</div>
+                <div class="message operator">Оператор: Дякую за звернення. Щоб заблокувати: перейдіть у "Картки" → виберіть картку → "Заблокувати"</div>
                 <div class="balance">₴ 12 345</div>
-                <div class="card">
-                    <div>Картка ***1234</div>
-                    <div>Ліміт: ₴ 100 000</div>
-                </div>
-                <div class="hint">Підказка оператору: Запитайте у клієнта баланс картки. Перейдіть у "Картки" для деталей.</div>
-                <button onclick="showScreen('cards')">Деталі картки</button>
+                <div class="hint">Підказка: Запитайте причину блокування. Перевірте, чи не активний Apple Pay.</div>
+                <button class="action-btn" onclick="blockCard()">Заблокувати картку</button>
             </div>
-
-            <!-- Картки -->
-            <div id="cards" class="screen">
-                <div class="header"><button onclick="showScreen('home')">← Назад</button></div>
-                <h2>Картки</h2>
-                <div class="card">
-                    <div>Кредитна картка</div>
-                    <div>Залишок: ₴ 50 000 / 100 000</div>
-                    <div>Пільговий: 62 дні</div>
-                </div>
-                <div class="hint">Скажіть клієнту: "Відкрийте Картки → Натисніть на картку → Подивіться ліміт". Перевірте мінімальний платіж!</div>
-                <button onclick="showScreen('credits')">Кредити</button>
-            </div>
-
-            <!-- Кредити -->
-            <div id="credits" class="screen">
-                <div class="header"><button onclick="showScreen('cards')">← Назад</button></div>
-                <h2>Кредити</h2>
-                <div class="card">
-                    <div>Кредитні канікули</div>
-                    <div>Оформити →</div>
-                </div>
-                <div class="hint">Для військових: перевірте дату одруження. Скажіть: "Перейдіть у Кредити → Канікули".</div>
-            </div>
-
-            <!-- Нижнє меню -->
-            <div class="menu">
-                <div class="menu-item active" onclick="showScreen('home')">Головна</div>
-                <div class="menu-item" onclick="showScreen('cards')">Картки</div>
-                <div class="menu-item" onclick="showScreen('credits')">Кредити</div>
-                <div class="menu-item" onclick="showScreen('payments')">Платежі</div>
-                <div class="menu-item" onclick="showScreen('more')">Ще</div>
+            <div class="bottom-menu">
+                <div class="menu-item active" onclick="switchScreen('main')">Головна</div>
+                <div class="menu-item" onclick="switchScreen('cards')">Картки</div>
+                <div class="menu-item" onclick="switchScreen('credits')">Кредити</div>
+                <div class="menu-item" onclick="switchScreen('payments')">Платежі</div>
+                <div class="menu-item" onclick="switchScreen('more')">Ще</div>
             </div>
         </div>
+
+        <!-- Екран Картки -->
+        <div id="cards" class="screen">
+            <div class="statusbar"><span onclick="switchScreen('main')">←</span></div>
+            <div class="chat">
+                <h2 style="text-align:center;">Картки</h2>
+                <div class="message">Кредитна картка ***5678<br>Ліміт: ₴100 000<br>Залишок: ₴12 345<br>Пільговий період: 62 дні</div>
+                <div class="hint">Скажіть: "Оберіть картку → Натисніть Заблокувати". Не блокуйте без підтвердження!</div>
+                <button class="action-btn" onclick="alert('Картка заблокована!')">Заблокувати</button>
+            </div>
+            <div class="bottom-menu">
+                <div class="menu-item" onclick="switchScreen('main')">Головна</div>
+                <div class="menu-item active" onclick="switchScreen('cards')">Картки</div>
+                <!-- інші меню... -->
+            </div>
+        </div>
+
+        <!-- Інші екрани аналогічно -->
+        <div id="credits" class="screen"><div class="statusbar"><span onclick="switchScreen('main')">←</span></div><div class="chat"><h2>Кредити</h2><div class="hint">Канікули: перевірте статус військовослужбовця.</div></div></div>
+        <div id="payments" class="screen"><div class="chat"><h2>Платежі</h2></div></div>
+        <div id="more" class="screen"><div class="chat"><h2>Налаштування, Чат</h2></div></div>
     </div>
 
-    <!-- Додаткові екрани (додай аналогічно) -->
-    <div id="payments" class="screen"><h2>Платежі</h2><div class="hint">QR платежі тут.</div></div>
-    <div id="more" class="screen"><h2>Налаштування</h2><div class="hint">Чат, POS.</div></div>
-
     <script>
-        function showScreen(screenId) {
+        function switchScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            document.querySelectorAll('.menu-item').forEach((item, i) => {
-                item.classList.toggle('active', ['home','cards','credits','payments','more'][i] === screenId);
-            });
+            document.getElementById(id).classList.add('active');
+            // Оновити активне меню
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+        }
+        function blockCard() {
+            alert('Імітація: Клієнт перейшов до блокування. Оператор: "Підтвердіть причину"');
+            switchScreen('cards');
         }
     </script>
 </body>
