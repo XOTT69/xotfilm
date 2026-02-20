@@ -2,40 +2,101 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>mono - Картки</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>mono - Картки (Спрощений)</title>
   <link rel="stylesheet" href="style.css">
   <style>
     /* Стилі тільки для цього екрану */
-    .blue-header { background: var(--bg-blue); padding: 50px 20px 40px; color: white; padding-bottom: 50px; }
-    .balance-section { text-align: center; margin-bottom: 20px; }
-    .main-balance { font-size: 42px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .white-content { background: var(--bg-white); border-radius: 24px 24px 0 0; padding: 20px 16px 40px; margin-top: -24px; position: relative; z-index: 2; min-height: 500px; }
-    .section-card { background: #fff; border-radius: 24px; padding: 20px 16px; margin-bottom: 16px; font-weight: bold;}
+    .blue-header { 
+      background: var(--bg-blue); 
+      padding: 70px 20px 60px; /* збільшив відступи, бо немає іконок зверху */
+      color: white; 
+    }
+    
+    .balance-section { text-align: center; }
+    .main-balance { 
+      font-size: 52px; /* Збільшив розмір під новий скрін */
+      font-weight: 800; 
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    .credit-usage {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .white-content { 
+      background: var(--bg-white); 
+      border-radius: 24px 24px 0 0; 
+      padding: 30px 16px 40px; 
+      margin-top: -24px; 
+      position: relative; 
+      z-index: 2; 
+      min-height: 500px; /* щоб фон тягнувся до низу */
+    }
+
+    /* Великі білі плашки-кнопки зі скріна */
+    .simple-btn { 
+      background: #fff; 
+      border-radius: 20px; 
+      padding: 24px 20px; 
+      margin-bottom: 16px; 
+      font-size: 20px; 
+      font-weight: 800;
+      color: #000;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03); /* Дуже легка тінь, як на скріні */
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .simple-btn:active { background: #f0f0f0; }
+
   </style>
 </head>
 <body>
 <div class="app-container">
+  
   <div class="scroll-area">
+    <!-- Синя частина з балансом -->
     <div class="blue-header">
       <div class="balance-section">
         <div class="main-balance">24 055 ₴</div>
-        <p style="font-size: 13px; opacity: 0.7;">Використано • 15 945 з 40 000 ₴</p>
+        <div class="credit-usage">Використано • 15 945 з 40 000 ₴</div>
       </div>
     </div>
+    
+    <!-- Біла частина з двома плашками -->
     <div class="white-content">
-      <div class="section-card">Операції</div>
-      <div class="section-card" onclick="alert('Екран лімітів')">Ліміти та обмеження</div>
+      <div class="simple-btn" onclick="alert('Імітація переходу в Операції')">
+        Операції
+      </div>
+      <div class="simple-btn" onclick="alert('Імітація переходу в Ліміти')">
+        Ліміти та обмеження
+      </div>
     </div>
   </div>
 
-  <!-- МЕНЮ -->
+  <!-- МЕНЮ (4 кнопки, як на новому скріні) -->
   <div class="bottom-nav">
-    <a href="index.html" class="nav-item active"><div class="nav-icon">💳</div><div class="nav-label">Картки</div></a>
-    <a href="credits.html" class="nav-item"><div class="nav-icon">📊</div><div class="nav-label">Кредити</div></a>
-    <a href="#" class="nav-item"><div class="nav-icon">🏦</div><div class="nav-label">Накопичення</div></a>
-    <a href="#" class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">Ще</div></a>
+    <a href="index.html" class="nav-item active">
+      <!-- Якщо є картинка, можна вставити img, тут залишаю емодзі як плейсхолдер -->
+      <div class="nav-icon">💳</div>
+      <div class="nav-label">Картки</div>
+    </a>
+    <a href="credits.html" class="nav-item">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Кредити</div>
+    </a>
+    <a href="savings.html" class="nav-item">
+      <div class="nav-icon">🏦</div>
+      <div class="nav-label">Накопичення</div>
+    </a>
+    <a href="more.html" class="nav-item">
+      <div class="nav-icon">⚙️</div>
+      <div class="nav-label">Ще</div>
+    </a>
   </div>
+
 </div>
 </body>
 </html>
