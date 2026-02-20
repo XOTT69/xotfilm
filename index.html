@@ -3,10 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>mono - Картки</title>
-  <link rel="stylesheet" href="style.css">
+  <title>mono simulator</title>
   <style>
-    /* --- ОСНОВНИЙ ЕКРАН --- */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    :root {
+      --bg-blue: linear-gradient(180deg, #18227c 0%, #3a68a8 50%, #87a7cc 100%);
+      --bg-green: linear-gradient(180deg, #097233 0%, #0db852 40%, #56d98a 100%);
+      --bg-savings: linear-gradient(180deg, #18227c 0%, #1c5298 50%, #4480c8 100%);
+      --bg-white: #f2f3f8;
+      --text-main: #000;
+      --text-sec: #8c8c8c;
+      --card-silver: linear-gradient(135deg, #d8dce6 0%, #aab2c8 100%);
+      --color-green: #20c96c;
+      --color-purple: #7050a1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #111; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+    .app-container {
+      width: 390px; height: 844px; background: var(--bg-white); position: relative;
+      border-radius: 40px; box-shadow: 0 0 0 10px #000, 0 20px 50px rgba(0,0,0,0.5);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+
+    /* --- ЛОГІКА ЕКРАНІВ (ТАБІВ) --- */
+    .screen { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; top: 0; left: 0; padding-bottom: 80px;}
+    .screen.active { display: flex; }
+    
+    .scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--bg-white); }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* ====== ЕКРАН 1: КАРТКИ ====== */
     .blue-header { background: var(--bg-blue); padding: 50px 20px 40px; color: white; padding-bottom: 50px; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .top-left { display: flex; align-items: center; gap: 12px; }
@@ -32,15 +61,13 @@
     .action-circle { width: 60px; height: 60px; background: #1c1c1e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
     .action-label { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.2; color: #fff; }
 
-    .white-content { background: var(--bg-white); border-radius: 24px 24px 0 0; padding: 20px 16px 40px; margin-top: -24px; position: relative; z-index: 2; }
-    
+    .white-content { background: var(--bg-white); border-radius: 24px 24px 0 0; padding: 20px 16px 40px; margin-top: -24px; position: relative; z-index: 2; min-height: 400px;}
     .section-card { background: #fff; border-radius: 24px; padding: 20px 16px; margin-bottom: 16px; }
     .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .section-title { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #000;}
     .see-all { font-size: 13px; font-weight: 600; color: #1744b4; background: #e8edff; padding: 6px 14px; border-radius: 12px; cursor: pointer;}
     .see-all:active { background: #d0dbff; }
 
-    /* Транзакції */
     .tx-list { display: flex; flex-direction: column; gap: 16px; }
     .tx-item { display: flex; align-items: center; gap: 12px; cursor: pointer;}
     .tx-item:active { opacity: 0.7; }
@@ -57,14 +84,14 @@
     .tx-amount { font-size: 16px; font-weight: 700; color: #000; text-align: right;}
     .tx-amount.positive { color: var(--color-green); }
 
-    /* Нові ліміти */
+    /* Ліміти (Новий дизайн) */
     .limits-card-new { background: transparent; border-radius: 20px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; border: 1px solid #7c8be1; cursor: pointer; }
     .limits-card-new:active { background: rgba(0,0,0,0.03); }
     .limits-icon-new { width: 44px; height: 44px; background: #e8edf5; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
     .limits-text-new h4 { font-size: 16px; font-weight: 700; margin-bottom: 2px; color: #000; }
     .limits-text-new p { font-size: 13px; color: #7a7a7a; font-weight: 500; }
 
-    /* Блок: Корисне */
+    /* Корисне */
     .useful-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
     .currency-row { grid-column: 1 / -1; display: flex; gap: 12px; }
     .currency-box { flex: 1; background: #f8f9fc; border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 8px; }
@@ -75,54 +102,46 @@
     .useful-btn-icon { font-size: 24px; }
     .useful-btn span { font-size: 12px; font-weight: 700; color: #000;}
 
-    /* ====== OVERLAY ЕКРАН: ВИПИСКА ====== */
+    /* ====== OVERLAY 1: ВИПИСКА ====== */
     .transactions-overlay { position: absolute; top: 100%; left: 0; width: 100%; height: 100%; background: #fff; z-index: 50; transition: top 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; border-radius: 40px; overflow: hidden; }
     .transactions-overlay.open { top: 0; }
     .tx-overlay-header { display: flex; justify-content: space-between; padding: 40px 20px 20px; }
     .tx-close-btn { font-size: 24px; color: #ff3b30; cursor: pointer; }
     .tx-search-btn { font-size: 20px; color: #ff3b30; cursor: pointer; }
-
     .tx-mini-card-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; transition: 0.2s; }
     .tx-mini-card { width: 80px; height: 50px; background: linear-gradient(135deg, #d8dce6 0%, #aab2c8 100%); border-radius: 8px; margin-bottom: 8px; position: relative; }
     .tx-mini-card::after { content: 'VISA'; position: absolute; bottom: 4px; right: 6px; font-size: 8px; font-weight: 900; font-style: italic; color: #4a4a4a; opacity: 0.8;}
     .tx-mini-card::before { content: 'monobank'; position: absolute; top: 4px; left: 6px; font-size: 6px; font-weight: 800; color: #4a4a4a;}
     .tx-mini-balance { font-size: 20px; font-weight: 800; }
-
     .tx-overlay-content { flex: 1; overflow-y: auto; padding: 0 20px 40px; }
     .tx-overlay-content::-webkit-scrollbar { display: none; }
     .tx-date-divider { text-align: center; font-size: 13px; color: var(--text-sec); font-weight: 500; margin: 24px 0 16px; }
-    
     .active-filter-badge { display: none; margin: 0 auto 10px; background: #1c1c1e; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; align-items: center; gap: 8px; width: fit-content; cursor: pointer; }
     .active-filter-badge.show { display: flex; }
 
-    /* ====== OVERLAY ЕКРАН: ПОШУК І КАТЕГОРІЇ ====== */
+    /* ====== OVERLAY 2: ПОШУК ====== */
     .search-overlay { position: absolute; top: 0; left: 100%; width: 100%; height: 100%; background: #fff; z-index: 100; transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; border-radius: 40px; overflow: hidden; }
     .search-overlay.open { left: 0; }
     .search-top-bar { padding: 40px 16px 10px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.05); }
     .filter-btn { width: 36px; height: 36px; border-radius: 50%; background: #f2f3f8; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; color: #8c8c8c; flex-shrink: 0; transition: 0.2s;}
     .filter-btn.active { background: #1c1c1e; color: #fff; }
-    
     .search-input-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
     .search-input-wrapper input { width: 100%; height: 36px; background: #f2f3f8; border: none; border-radius: 10px; padding: 0 30px 0 34px; font-size: 15px; font-weight: 500; outline: none; color: #000; }
     .search-input-wrapper input::placeholder { color: #8c8c8c; }
     .search-icon { position: absolute; left: 10px; color: #8c8c8c; font-size: 14px; }
     .search-clear { position: absolute; right: 10px; width: 16px; height: 16px; background: #c7c7cc; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; opacity: 0; pointer-events: none;}
     .search-input-wrapper input:not(:placeholder-shown) + .search-clear { opacity: 1; pointer-events: all; }
-
     .search-content-area { flex: 1; overflow-y: auto; position: relative; }
     .search-content-area::-webkit-scrollbar { display: none; }
-
     .tab-categories { padding: 16px 20px 40px; display: block; }
     .tab-categories h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
     .category-item { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; cursor: pointer; }
     .category-item:active { opacity: 0.6; }
     .category-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; }
     .category-name { font-size: 16px; font-weight: 500; }
-
     .tab-tags { padding: 40px 20px; display: none; flex-direction: column; align-items: center; text-align: center; }
     .cat-placeholder { width: 180px; height: 180px; background: #4ba0ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 80px; margin-bottom: 20px; }
     .tab-tags p { font-size: 14px; color: var(--text-sec); font-weight: 500; line-height: 1.4; }
-
     .tab-calendar { padding: 20px; display: none; }
     .tab-calendar h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 10px; margin-bottom: 20px;}
@@ -130,287 +149,337 @@
     .cal-day { font-size: 16px; font-weight: 500; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;}
     .cal-day.active { border: 1px solid #c7c7cc; border-radius: 50%; }
     .cal-month { font-size: 12px; color: var(--text-sec); margin-top: 20px; margin-bottom: 10px; text-align: left;}
-
     .search-results { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 10; padding: 20px; display: none; overflow-y: auto; }
     .search-results.active { display: block; }
+
+    /* ====== ЕКРАН 2: КРЕДИТИ ====== */
+    .green-header { background: var(--bg-green); padding: 50px 20px 20px; color: white; position: relative; }
+    .credit-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .credit-icon-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; }
+    .credit-limit-title { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .credit-balance { font-size: 46px; font-weight: 800; text-align: center; letter-spacing: -1px; margin-bottom: 30px; }
+    .credit-products-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 24px; margin: 0 -20px; padding: 0 20px 30px; scroll-snap-type: x mandatory; }
+    .credit-products-scroll::-webkit-scrollbar { display: none; }
+    .credit-product-card { background: #fff; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; min-width: 220px; scroll-snap-align: start; box-shadow: 0 8px 16px rgba(0,0,0,0.1); color: var(--text-main); }
+    .product-icon.purple { width: 44px; height: 44px; background: var(--color-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; }
+    .product-icon.green { width: 44px; height: 44px; background: #00965e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; }
+    .product-title { font-size: 15px; font-weight: 700; line-height: 1.2; }
+    .white-content-credits { background: var(--bg-white); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; margin-top: -24px; position: relative; z-index: 2; min-height: 400px; }
+    .section-title-credits { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+    .pch-list { display: flex; flex-direction: column; gap: 24px; }
+    .pch-item { display: flex; align-items: flex-start; gap: 16px; }
+    .pch-logo { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; font-size: 24px; background-color: var(--color-purple); color: white;}
+    .pch-logo.white-bg { background-color: #fff; }
+    .pch-details { flex: 1; }
+    .pch-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; }
+    .pch-name { font-size: 16px; font-weight: 700; color: #000; }
+    .pch-amount { font-size: 15px; font-weight: 600; color: #000; }
+    .pch-progress-bar { height: 4px; background: #e0e0e0; border-radius: 2px; margin-bottom: 6px; overflow: hidden; position: relative; }
+    .pch-progress-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--color-purple); border-radius: 2px; }
+    .pch-next-payment { font-size: 13px; color: var(--text-sec); font-weight: 500; }
+
+    /* ====== ЕКРАН 3: НАКОПИЧЕННЯ ====== */
+    .savings-header { background: var(--bg-savings); padding: 50px 20px 20px; color: white; position: relative; }
+    .sav-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sav-title { font-size: 16px; font-weight: 600; text-align: center; flex: 1; }
+    .info-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .sav-balance { font-size: 56px; font-weight: 800; text-align: center; margin-bottom: 30px; letter-spacing: -2px;}
+    .action-buttons { display: flex; gap: 12px; margin-bottom: 20px; }
+    .action-btn { flex: 1; background: #fff; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; color: #000; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;}
+    .action-btn:active { background: #f0f0f0; }
+    .btn-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;}
+    .icon-depo { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .icon-banka { background: linear-gradient(135deg, #f43f5e, #fb7185); }
+    .banka-item { display: flex; align-items: center; gap: 16px; background: transparent; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .banka-icon { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #fb7185, #f43f5e); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
+    .banka-name { font-size: 16px; font-weight: 600; color: #000; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .banka-progress { font-size: 13px; color: var(--text-sec); font-weight: 500;}
+
+    /* OVERLAY ДОВІДКИ НАКОПИЧЕНЬ */
+    .info-overlay { position: absolute; top: 100%; left: 0; width: 100%; height: 100%; background: #fff; z-index: 50; transition: top 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; border-radius: 40px; overflow: hidden; }
+    .info-overlay.open { top: 0; }
+    .info-header { padding: 40px 20px 16px; display: flex; align-items: center; background: #fff; position: sticky; top: 0; z-index: 60; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .back-btn { font-size: 24px; color: #ff3b30; cursor: pointer; width: 30px; }
+    .info-title { flex: 1; text-align: center; font-size: 18px; font-weight: 700; padding-right: 30px;}
+    .info-content { flex: 1; overflow-y: auto; padding: 20px 20px 60px; background: #f9f9f9; }
+    .info-content::-webkit-scrollbar { display: none; }
+    .cat-hero { text-align: center; margin-bottom: 30px; }
+    .cat-hero-img { width: 140px; height: 140px; background: #4ba0ff; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 70px; }
+    .info-card { border-radius: 20px; padding: 20px; margin-bottom: 24px; color: white; }
+    .card-blue { background: #2581e6; }
+    .card-coral { background: #e6857a; }
+    .card-teal { background: #4dbab9; }
+    .card-darkblue { background: #4a75a7; }
+    .card-purple { background: #964a9f; }
+    .card-olive { background: #717d50; }
+    .card-pink { background: #b11693; }
+    .card-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+    .info-list { display: flex; flex-direction: column; gap: 16px; }
+    .info-list-item { display: flex; align-items: center; gap: 12px; }
+    .info-list-icon { width: 36px; height: 36px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 16px; flex-shrink: 0; font-weight: bold;}
+    .info-list-text { font-size: 14px; font-weight: 500; line-height: 1.3; }
+    .text-block { margin-bottom: 20px; padding: 0 10px;}
+    .text-block h3 { font-size: 20px; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;}
+    .text-block p { font-size: 15px; color: #333; line-height: 1.5; margin-bottom: 12px; font-weight: 500;}
+    .guarantee-box { background: white; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 16px; margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.05); }
+    .guarantee-icon { font-size: 24px; }
+    .guarantee-text { font-size: 13px; font-weight: 600; color: #000; }
+
+    /* ====== НИЖНЄ МЕНЮ ====== */
+    .bottom-nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 80px; background: #fff; border-radius: 0 0 40px 40px; display: flex; justify-content: space-between; padding: 10px 24px 20px; border-top: 1px solid rgba(0,0,0,0.05); z-index: 40; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; cursor: pointer; }
+    .nav-icon { font-size: 24px; filter: grayscale(50%) opacity(0.8); transition: 0.2s; }
+    .nav-label { font-size: 11px; font-weight: 700; color: #7a7a7a; transition: 0.2s; }
+    .nav-item.active .nav-icon { filter: none; }
+    /* Картки (червоний) */
+    .nav-item.active[onclick="switchTab('cards')"] .nav-label { color: #f43f5e; }
+    /* Кредити (червоний) */
+    .nav-item.active[onclick="switchTab('credits')"] .nav-label { color: #f43f5e; }
+    /* Накопичення (червоний) */
+    .nav-item.active[onclick="switchTab('savings')"] .nav-label { color: #f43f5e; }
+
   </style>
 </head>
 <body>
 
 <div class="app-container">
-  
-  <div class="scroll-area">
-    <div class="blue-header">
-      <div class="top-bar"><div class="top-left"><div class="avatar"></div><div class="chat-icon">💬</div></div><div class="top-right"><div class="cashback-pill">🎁 52 ₴</div><div class="chat-icon">🐱</div><div class="chat-icon">📊</div></div></div>
-      <div class="balance-section"><div class="no-min-pay">📷 Немає мінімального платежу</div><div class="main-balance"><div class="plus-btn">+</div>24 055 ₴</div><div class="credit-usage">📷 Використано • 15 945 з 40 000 ₴</div></div>
-      <div class="card-mockup" onclick="alert('Відкриваються деталі картки')"><div class="card-logo">monobank</div><div class="card-number">4441 **** **** 7777</div><div class="card-visa">VISA</div></div>
-      <div class="all-cards-btn">💳 Усі картки</div>
-      <div class="quick-actions"><div class="action-item"><div class="action-circle">💳</div><div class="action-label">Переказати<br>на картку</div></div><div class="action-item"><div class="action-circle">📄</div><div class="action-label">Платіж<br>за IBAN</div></div><div class="action-item"><div class="action-circle">📚</div><div class="action-label">Інші<br>платежі</div></div></div>
-    </div>
 
-    <!-- БІЛА ЧАСТИНА (З ОПЕРАЦІЯМИ, ЛІМІТАМИ ТА КОРИСНИМ) -->
-    <div class="white-content">
-      
-      <!-- Операції -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Операції </div>
-          <div class="see-all" onclick="openTransactions()">Усі ›</div>
-        </div>
-        <div class="tx-list">
-          <div class="tx-item">
-            <div class="tx-icon income">📥</div>
-            <div class="tx-details"><div class="tx-name">Від: Іван Петренко</div></div>
-            <div class="tx-amount positive">6 900 ₴</div>
-          </div>
-          <div class="tx-item">
-            <div class="tx-icon transfer">👩</div>
-            <div class="tx-details"><div class="tx-name">Від: Марія Коваленко</div></div>
-            <div class="tx-amount positive">1 035 ₴</div>
-          </div>
-          <div class="tx-item">
-            <div class="tx-icon cat-groceries">🛍️</div>
-            <div class="tx-details"><div class="tx-name">Сільпо</div></div>
-            <div class="tx-amount">-456 ₴</div>
-          </div>
-        </div>
+  <!-- ===============================
+       ЕКРАН 1: КАРТКИ 
+       =============================== -->
+  <div class="screen active" id="screen-cards">
+    <div class="scroll-area">
+      <div class="blue-header">
+        <div class="top-bar"><div class="top-left"><div class="avatar"></div><div class="chat-icon">💬</div></div><div class="top-right"><div class="cashback-pill">🎁 52 ₴</div><div class="chat-icon">🐱</div><div class="chat-icon">📊</div></div></div>
+        <div class="balance-section"><div class="no-min-pay">📷 Немає мінімального платежу</div><div class="main-balance"><div class="plus-btn">+</div>24 055 ₴</div><div class="credit-usage">📷 Використано • 15 945 з 40 000 ₴</div></div>
+        <div class="card-mockup" onclick="alert('Відкриваються деталі картки')"><div class="card-logo">monobank</div><div class="card-number">4441 **** **** 7777</div><div class="card-visa">VISA</div></div>
+        <div class="all-cards-btn">💳 Усі картки</div>
+        <div class="quick-actions"><div class="action-item"><div class="action-circle">💳</div><div class="action-label">Переказати<br>на картку</div></div><div class="action-item"><div class="action-circle">📄</div><div class="action-label">Платіж<br>за IBAN</div></div><div class="action-item"><div class="action-circle">📚</div><div class="action-label">Інші<br>платежі</div></div></div>
       </div>
 
-      <!-- Ліміти та обмеження (Новий дизайн) -->
-      <div class="limits-card-new" onclick="alert('Імітація: екран лімітів')">
-        <div class="limits-icon-new">🏛️</div>
-        <div class="limits-text-new">
-          <h4>Ліміти та обмеження</h4>
-          <p>Для витрат з карток</p>
+      <div class="white-content">
+        <div class="section-card">
+          <div class="section-header"><div class="section-title">Операції</div><div class="see-all" onclick="openTransactions()">Усі ›</div></div>
+          <div class="tx-list">
+            <div class="tx-item"><div class="tx-icon income">📥</div><div class="tx-details"><div class="tx-name">Від: Іван Петренко</div></div><div class="tx-amount positive">6 900 ₴</div></div>
+            <div class="tx-item"><div class="tx-icon transfer">👩</div><div class="tx-details"><div class="tx-name">Від: Марія Коваленко</div></div><div class="tx-amount positive">1 035 ₴</div></div>
+            <div class="tx-item"><div class="tx-icon cat-groceries">🛍️</div><div class="tx-details"><div class="tx-name">Сільпо</div></div><div class="tx-amount">-456 ₴</div></div>
+          </div>
         </div>
-      </div>
 
-      <!-- Корисне (Курси, Служба підтримки тощо) -->
-      <div class="section-card">
-        <div class="section-title" style="margin-bottom: 16px;">Корисне</div>
-        
-        <div class="useful-grid">
-          <div class="currency-row">
-            <div class="currency-box">
-              <div class="currency-flag">🇺🇸</div>
-              <div class="currency-info">
-                <p>Долар США</p>
-                <span>43.01 / 43.47</span>
-              </div>
+        <div class="limits-card-new" onclick="alert('Імітація: екран лімітів')">
+          <div class="limits-icon-new">🏛️</div>
+          <div class="limits-text-new"><h4>Ліміти та обмеження</h4><p>Для витрат з карток</p></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title" style="margin-bottom: 16px;">Корисне</div>
+          <div class="useful-grid">
+            <div class="currency-row">
+              <div class="currency-box"><div class="currency-flag">🇺🇸</div><div class="currency-info"><p>Долар США</p><span>43.01 / 43.47</span></div></div>
+              <div class="currency-box"><div class="currency-flag">🇪🇺</div><div class="currency-info"><p>Євро</p><span>50.55 / 51.25</span></div></div>
             </div>
-            <div class="currency-box">
-              <div class="currency-flag">🇪🇺</div>
-              <div class="currency-info">
-                <p>Євро</p>
-                <span>50.55 / 51.25</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="useful-btn">
-            <div class="useful-btn-icon" style="color: #5080ee;">🎧</div>
-            <span>Служба підтримки</span>
-          </div>
-          <div class="useful-btn">
-            <div class="useful-btn-icon" style="color: #a78bfa;">❓</div>
-            <span>Поширені запитання</span>
-          </div>
-          <div class="useful-btn">
-            <div class="useful-btn-icon" style="color: #ff3b30;">🧾</div>
-            <span>Виписки та довідки</span>
-          </div>
-          <div class="useful-btn">
-            <div class="useful-btn-icon" style="color: #20c96c;">📄</div>
-            <span>Умови і тарифи</span>
+            <div class="useful-btn"><div class="useful-btn-icon" style="color: #5080ee;">🎧</div><span>Служба підтримки</span></div>
+            <div class="useful-btn"><div class="useful-btn-icon" style="color: #a78bfa;">❓</div><span>Поширені запитання</span></div>
+            <div class="useful-btn"><div class="useful-btn-icon" style="color: #ff3b30;">🧾</div><span>Виписки та довідки</span></div>
+            <div class="useful-btn"><div class="useful-btn-icon" style="color: #20c96c;">📄</div><span>Умови і тарифи</span></div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- ====== 1. OVERLAY: ВИПИСКА ====== -->
+  <!-- ===============================
+       ЕКРАН 2: КРЕДИТИ 
+       =============================== -->
+  <div class="screen" id="screen-credits">
+    <div class="scroll-area">
+      <div class="green-header">
+        <div class="credit-top-bar"><div class="credit-icon-btn" style="border: none; font-size: 24px;">⬡</div><div class="credit-icon-btn">i</div></div>
+        <div class="credit-limit-title">Доступний ліміт</div>
+        <div class="credit-balance">150 000 ₴</div>
+        <div class="credit-products-scroll">
+          <div class="credit-product-card"><div class="product-icon purple">🐾</div><div class="product-title">Покупка<br>Частинами</div></div>
+          <div class="credit-product-card"><div class="product-icon green">🕒</div><div class="product-title">Розстрочка<br>на картку</div></div>
+        </div>
+      </div>
+
+      <div class="white-content-credits">
+        <div class="section-title-credits">Покупка Частинами</div>
+        <div class="pch-list">
+          <div class="pch-item">
+            <div class="pch-logo">🐾</div>
+            <div class="pch-details">
+              <div class="pch-header"><div class="pch-name">Смартфон Apple</div><div class="pch-amount">35 499 ₴</div></div>
+              <div class="pch-progress-bar"><div class="pch-progress-fill" style="width: 60%;"></div></div>
+              <div class="pch-next-payment">Платіж 10 березня на 3 549 ₴</div>
+            </div>
+          </div>
+          <div class="pch-item">
+            <div class="pch-logo white-bg">🚴</div>
+            <div class="pch-details">
+              <div class="pch-header"><div class="pch-name">Велосипед</div><div class="pch-amount">12 000 ₴</div></div>
+              <div class="pch-progress-bar"><div class="pch-progress-fill" style="width: 25%;"></div></div>
+              <div class="pch-next-payment">Платіж 15 березня на 1 200 ₴</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===============================
+       ЕКРАН 3: НАКОПИЧЕННЯ 
+       =============================== -->
+  <div class="screen" id="screen-savings">
+    <div class="scroll-area">
+      <div class="savings-header">
+        <div class="sav-top-bar">
+          <div style="width: 28px;"></div>
+          <div class="sav-title">Накопичення в гривнях</div>
+          <div class="info-btn" onclick="openInfo()">i</div>
+        </div>
+        <div class="sav-balance">1 ₴</div>
+        <div class="action-buttons">
+          <div class="action-btn" onclick="alert('Відкриття депозиту')"><div class="btn-icon icon-depo">@</div>Відкрити<br>депозит</div>
+          <div class="action-btn" onclick="alert('Створення Банки')"><div class="btn-icon icon-banka">🥛</div>Відкрити<br>Банку</div>
+        </div>
+      </div>
+
+      <div class="white-content">
+        <div class="section-title" style="font-size: 18px; font-weight: 800; margin-bottom: 4px; color: #000;">Банки</div>
+        <div class="section-subtitle" style="font-size: 13px; color: var(--text-sec); margin-bottom: 16px; font-weight: 500;">У гривні 1 ₴</div>
+        
+        <div class="banka-item" onclick="alert('Деталі банки')">
+          <div class="banka-icon">🥛</div>
+          <div class="banka-details">
+            <div class="banka-name">На корм котику<span>3 000 ₴</span></div>
+            <div class="banka-progress">Накопичено 1 ₴</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===============================
+       OVERLAYS (ВСПЛИВАЮЧІ ВІКНА) 
+       =============================== -->
+
+  <!-- OVERLAY: ПРО НАКОПИЧЕННЯ (DОВІДКА) -->
+  <div class="info-overlay" id="info-overlay">
+    <div class="info-header"><div class="back-btn" onclick="closeInfo()">←</div><div class="info-title">Про накопичення</div></div>
+    <div class="info-content">
+      <div class="cat-hero"><div class="cat-hero-img">😼</div></div>
+      <div class="info-card card-blue"><div class="card-title">У цьому розділі ви можете</div><div class="info-list"><div class="info-list-item"><div class="info-list-icon">🥛</div><div class="info-list-text">Накопичити гроші в Банці</div></div><div class="info-list-item"><div class="info-list-icon">@</div><div class="info-list-text">Оформити депозит</div></div><div class="info-list-item"><div class="info-list-icon">🔱</div><div class="info-list-text">Купити облігації ОВДП</div></div></div></div>
+      <div class="text-block"><h3>🚀 Що таке Банка?</h3><p>Це сервіс накопичення від monobank, який дозволить накопичувати гроші непомітно для вас.</p><p>Банку можна оформити у гривні, доларах США та євро. Відкривається без початкової суми та безстроково.</p></div>
+      <div class="info-card card-coral"><div class="card-title">Поповнення за посиланням</div><p style="font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 12px;">Це опція, за допомогою якої можна організувати благодійний збір або накопичувати разом із друзями.</p></div>
+      <div class="info-card card-teal"><div class="card-title">Як накопичувати в Банку?</div><div class="info-list"><div class="info-list-item"><div class="info-list-icon" style="color:#4dbab9">💳</div><div class="info-list-text">Разове або регулярне поповнення</div></div></div></div>
+      <div class="text-block" style="margin-top: 40px;"><h3>💰 Депозит</h3><p>Ви можете відкрити депозит у гривнях, доларах США чи євро</p></div>
+      <div class="info-card card-darkblue"><div class="card-title">Які можливості у депозитів?</div><div class="info-list"><div class="info-list-item"><div class="info-list-icon" style="color:#4a75a7">💵</div><div class="info-list-text">Мінімальна сума - 1 000 гривень</div></div></div></div>
+      <div class="info-card card-purple"><div class="card-title">На який строк можна оформити депозит?</div><div class="info-list" style="margin-bottom: 16px;"><div class="info-list-item"><div class="info-list-icon" style="color:#964a9f">₴</div><div class="info-list-text">Від 3 до 24 місяців депозит у гривні</div></div></div></div>
+      <div class="text-block" style="margin-top: 40px;"><h3>🇺🇦 Облігації ОВДП</h3><p>Ви можете купити облігації внутрішньої державної позики (ОВДП).</p></div>
+    </div>
+  </div>
+
+  <!-- OVERLAY: ВИПИСКА (ВСІ ОПЕРАЦІЇ) -->
   <div class="transactions-overlay" id="tx-overlay">
-    <div class="tx-overlay-header">
-      <div class="tx-close-btn" onclick="closeTransactions()">✕</div>
-      <div class="tx-search-btn" onclick="openSearch()">🔍</div>
-    </div>
-    
-    <div class="tx-mini-card-wrapper" id="tx-mini-header">
-      <div class="tx-mini-card"></div>
-      <div class="tx-mini-balance">24 055 ₴</div>
-    </div>
-
-    <!-- Плашка активного фільтру -->
-    <div class="active-filter-badge" id="active-filter-badge" onclick="clearFilter()">
-      <span id="active-filter-text">Продукти та супермаркети</span> <span>✕</span>
-    </div>
-
+    <div class="tx-overlay-header"><div class="tx-close-btn" onclick="closeTransactions()">✕</div><div class="tx-search-btn" onclick="openSearch()">🔍</div></div>
+    <div class="tx-mini-card-wrapper" id="tx-mini-header"><div class="tx-mini-card"></div><div class="tx-mini-balance">24 055 ₴</div></div>
+    <div class="active-filter-badge" id="active-filter-badge" onclick="clearFilter()"><span id="active-filter-text">Фільтр</span> <span>✕</span></div>
     <div class="tx-overlay-content" id="tx-history-list"></div>
   </div>
 
-  <!-- ====== 2. OVERLAY: ПОШУК ТА ФІЛЬТРИ ====== -->
+  <!-- OVERLAY: ПОШУК -->
   <div class="search-overlay" id="search-overlay">
     <div class="search-top-bar">
-      <!-- Кнопки вкладок -->
       <div class="filter-btn active" id="tab-btn-cat" onclick="switchSearchTab('cat')">≡</div>
       <div class="filter-btn" id="tab-btn-tags" onclick="switchSearchTab('tags')">#</div>
       <div class="filter-btn" id="tab-btn-cal" onclick="switchSearchTab('cal')">🗓️</div>
-      
-      <!-- Поле пошуку -->
-      <div class="search-input-wrapper">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Пошук" oninput="handleSearch()">
-        <div class="search-clear" onclick="document.getElementById('search-input').value=''; handleSearch();">✕</div>
-      </div>
+      <div class="search-input-wrapper"><span class="search-icon">🔍</span><input type="text" id="search-input" placeholder="Пошук" oninput="handleSearch()"><div class="search-clear" onclick="document.getElementById('search-input').value=''; handleSearch();">✕</div></div>
       <div class="filter-btn" style="background: none; font-size: 20px; padding: 0;" onclick="closeSearch()">✕</div>
     </div>
-
     <div class="search-content-area">
-      <!-- Вкладка: Категорії -->
       <div class="tab-categories" id="search-tab-cat">
         <h3>Категорія</h3>
-        <div class="category-item" onclick="applyCategoryFilter('Вхідні', 'income', '📥', '#2c2c2e')">
-          <div class="category-icon" style="background: #20c96c;">📥</div>
-          <div class="category-name">Вхідні</div>
-        </div>
-        <div class="category-item" onclick="applyCategoryFilter('Кафе та ресторани', 'cat-cafe', '☕', '#a855f7')">
-          <div class="category-icon" style="background: #a855f7;">☕</div>
-          <div class="category-name">Кафе та ресторани</div>
-        </div>
-        <div class="category-item" onclick="applyCategoryFilter('Продукти та супермаркети', 'cat-groceries', '🛍️', '#ff453a')">
-          <div class="category-icon" style="background: #ff453a;">🛍️</div>
-          <div class="category-name">Продукти та супермаркети</div>
-        </div>
-        <div class="category-item" onclick="applyCategoryFilter('Комуналка та інтернет', 'cat-other', '🏠', '#0ea5e9')">
-          <div class="category-icon" style="background: #0ea5e9;">🏠</div>
-          <div class="category-name">Комуналка та інтернет</div>
-        </div>
-        <div class="category-item" onclick="applyCategoryFilter('Покупка частинами', 'cat-installment', '🐾', '#8b5cf6')">
-          <div class="category-icon" style="background: #8b5cf6;">🐾</div>
-          <div class="category-name">Покупка частинами</div>
-        </div>
-        <div class="category-item" onclick="applyCategoryFilter('Інше', 'cat-other', '🛒', '#f97316')">
-          <div class="category-icon" style="background: #64748b;">🛒</div>
-          <div class="category-name">Інше</div>
-        </div>
+        <div class="category-item" onclick="applyCategoryFilter('Вхідні', 'income', '📥', '#2c2c2e')"><div class="category-icon" style="background: #20c96c;">📥</div><div class="category-name">Вхідні</div></div>
+        <div class="category-item" onclick="applyCategoryFilter('Продукти та супермаркети', 'cat-groceries', '🛍️', '#ff453a')"><div class="category-icon" style="background: #ff453a;">🛍️</div><div class="category-name">Продукти та супермаркети</div></div>
       </div>
-
-      <!-- Вкладка: Теги -->
-      <div class="tab-tags" id="search-tab-tags">
-        <div class="cat-placeholder">🐱</div>
-        <p>Ви можете групувати ваші витрати за допомогою<br>#тегів. Тут буде показано ваші теги</p>
-      </div>
-
-      <!-- Вкладка: Календар (Імітація) -->
-      <div class="tab-calendar" id="search-tab-cal">
-        <h3>Дата</h3>
-        <div class="cal-grid">
-          <div class="cal-day-name">пн</div><div class="cal-day-name">вт</div><div class="cal-day-name">ср</div><div class="cal-day-name">чт</div><div class="cal-day-name">пт</div><div class="cal-day-name">сб</div><div class="cal-day-name">нд</div>
-          <div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div>
-          <div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day">31</div><div></div>
-        </div>
-        <div class="cal-month">Лютий 2026</div>
-        <div class="cal-grid">
-          <div></div><div></div><div></div><div></div><div></div><div class="cal-day">1</div><div class="cal-day">2</div>
-          <div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div><div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div>
-          <div class="cal-day">10</div><div class="cal-day">11</div><div class="cal-day">12</div><div class="cal-day">13</div><div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day">16</div>
-          <div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day active">20</div><div class="cal-day" style="color:#ccc;">21</div><div class="cal-day" style="color:#ccc;">22</div>
-        </div>
-      </div>
-
-      <!-- Зона результатів пошуку -->
+      <div class="tab-tags" id="search-tab-tags"><div class="cat-placeholder">🐱</div><p>Тут буде показано ваші теги</p></div>
       <div class="search-results" id="search-results-list"></div>
     </div>
   </div>
 
-  <!-- НИЖНЄ МЕНЮ -->
+  <!-- ===============================
+       МЕНЮ НАВІГАЦІЇ
+       =============================== -->
   <div class="bottom-nav">
-    <a href="index.html" class="nav-item active"><div class="nav-icon">💳</div><div class="nav-label">Картки</div></a>
-    <a href="credits.html" class="nav-item"><div class="nav-icon">📊</div><div class="nav-label">Кредити</div></a>
-    <a href="savings.html" class="nav-item"><div class="nav-icon">🏦</div><div class="nav-label">Накопичення</div></a>
-    <a href="more.html" class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">Ще</div></a>
+    <div class="nav-item active" id="nav-cards" onclick="switchTab('cards')"><div class="nav-icon">💳</div><div class="nav-label">Картки</div></div>
+    <div class="nav-item" id="nav-credits" onclick="switchTab('credits')"><div class="nav-icon">📊</div><div class="nav-label">Кредити</div></div>
+    <div class="nav-item" id="nav-savings" onclick="switchTab('savings')"><div class="nav-icon">🏦</div><div class="nav-label">Накопичення</div></div>
+    <div class="nav-item" id="nav-more" onclick="alert('Екран Ще (Налаштування) - Завантажуй скріни!')"><div class="nav-icon">⚙️</div><div class="nav-label">Ще</div></div>
   </div>
 
 </div>
 
 <script>
-  // --- БАЗА ДАНИХ ТРАНЗАКЦІЙ ---
+  // --- ЛОГІКА ПЕРЕМИКАННЯ ГОЛОВНИХ ЕКРАНІВ (ТАБІВ) ---
+  function switchTab(tabId) {
+    // 1. Ховаємо всі екрани
+    document.querySelectorAll('.screen').forEach(screen => {
+      screen.classList.remove('active');
+    });
+    // 2. Знімаємо активний стан з усіх кнопок меню
+    document.querySelectorAll('.nav-item').forEach(nav => {
+      nav.classList.remove('active');
+    });
+    
+    // 3. Показуємо вибраний екран
+    document.getElementById('screen-' + tabId).classList.add('active');
+    // 4. Робимо активною кнопку в меню
+    document.getElementById('nav-' + tabId).classList.add('active');
+  }
+
+  // --- БАЗА ДАНИХ ТРАНЗАКЦІЙ (Для пошуку) ---
   const transactions = [
     { date: 'Сьогодні', id: 1, name: 'Від: Іван Петренко', amount: '6 900 ₴', type: 'income', icon: '📥', isPositive: true, category: 'Вхідні' },
-    { date: 'Вчора', id: 2, name: 'Від: Марія Коваленко', amount: '1 035 ₴', type: 'transfer', icon: '👩', isPositive: true, category: 'Вхідні' },
-    { date: 'Вчора', id: 3, name: 'Сільпо', amount: '-456 ₴', type: 'cat-groceries', icon: '🛍️', isPositive: false, category: 'Продукти та супермаркети' },
-    { date: 'Вчора', id: 4, name: 'Еко Маркет', amount: '-700 ₴', type: 'cat-groceries', icon: '🍎', isPositive: false, category: 'Продукти та супермаркети' },
-    { date: 'Вчора', id: 5, name: 'Щомісячний платіж Розстрочка', amount: '-1 424 ₴', type: 'cat-installment', icon: '🐾', isPositive: false, category: 'Покупка частинами' },
-    { date: '18 лютого 2026', id: 6, name: 'Щомісячний платіж Кухня', amount: '-854 ₴', type: 'cat-installment', icon: '🐾', isPositive: false, category: 'Покупка частинами' },
-    { date: '17 лютого 2026', id: 7, name: 'Від: Сергій Мельник', amount: '500 ₴', type: 'income', icon: '👨', isPositive: true, category: 'Вхідні' },
-    { date: '17 лютого 2026', id: 8, name: 'Aroma Kava', amount: '-120 ₴', type: 'cat-cafe', icon: '☕', isPositive: false, category: 'Кафе та ресторани' },
-    { date: '15 лютого 2026', id: 9, name: 'Київстар', amount: '-250 ₴', type: 'cat-other', icon: '📱', isPositive: false, category: 'Комуналка та інтернет' }
+    { date: 'Вчора', id: 2, name: 'Сільпо', amount: '-456 ₴', type: 'cat-groceries', icon: '🛍️', isPositive: false, category: 'Продукти та супермаркети' }
   ];
 
   let currentCategoryFilter = null;
 
-  // --- ВІДМАЛЬОВКА СПИСКУ ---
   function renderHistory(containerId, list) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
+    if (list.length === 0) { container.innerHTML = '<div style="text-align:center; padding: 40px; color: #8c8c8c;">Нічого не знайдено</div>'; return; }
     
-    if (list.length === 0) {
-      container.innerHTML = '<div style="text-align:center; padding: 40px; color: #8c8c8c;">Нічого не знайдено</div>';
-      return;
-    }
-
     let currentDate = '';
     list.forEach(tx => {
-      if (tx.date !== currentDate && containerId !== 'search-results-list') {
-        container.innerHTML += `<div class="tx-date-divider">${tx.date}</div>`;
-        currentDate = tx.date;
-      }
-      
+      if (tx.date !== currentDate && containerId !== 'search-results-list') { container.innerHTML += `<div class="tx-date-divider">${tx.date}</div>`; currentDate = tx.date; }
       const colorClass = tx.isPositive ? 'positive' : '';
-      container.innerHTML += `
-        <div class="tx-list" style="margin-bottom: 16px;">
-          <div class="tx-item">
-            <div class="tx-icon ${tx.type}">${tx.icon}</div>
-            <div class="tx-details"><div class="tx-name">${tx.name}</div><div class="tx-sub">${tx.category}</div></div>
-            <div class="tx-amount ${colorClass}">${tx.amount}</div>
-          </div>
-        </div>
-      `;
+      container.innerHTML += `<div class="tx-list" style="margin-bottom: 16px;"><div class="tx-item"><div class="tx-icon ${tx.type}">${tx.icon}</div><div class="tx-details"><div class="tx-name">${tx.name}</div><div class="tx-sub">${tx.category}</div></div><div class="tx-amount ${colorClass}">${tx.amount}</div></div></div>`;
     });
   }
 
-  // --- ЛОГІКА ОВЕРЛЕЇВ ---
   function openTransactions() { document.getElementById('tx-overlay').classList.add('open'); renderHistory('tx-history-list', transactions); }
   function closeTransactions() { document.getElementById('tx-overlay').classList.remove('open'); closeSearch(); clearFilter(); }
   function openSearch() { document.getElementById('search-overlay').classList.add('open'); }
   function closeSearch() { document.getElementById('search-overlay').classList.remove('open'); document.getElementById('search-input').value = ''; document.getElementById('search-results-list').classList.remove('active'); }
 
-  // --- ЛОГІКА ВКЛАДОК ПОШУКУ ---
   function switchSearchTab(tabId) {
-    ['cat', 'tags', 'cal'].forEach(id => {
-      document.getElementById('tab-btn-' + id).classList.remove('active');
-      document.getElementById('search-tab-' + id).style.display = 'none';
-    });
-    document.getElementById('tab-btn-' + tabId).classList.add('active');
-    document.getElementById('search-tab-' + tabId).style.display = (tabId === 'tags' ? 'flex' : 'block');
+    ['cat', 'tags', 'cal'].forEach(id => { document.getElementById('tab-btn-' + id).classList.remove('active'); document.getElementById('search-tab-' + id).style.display = 'none'; });
+    document.getElementById('tab-btn-' + tabId).classList.add('active'); document.getElementById('search-tab-' + tabId).style.display = (tabId === 'tags' ? 'flex' : 'block');
   }
 
-  // --- ПОШУК ТЕКСТОМ ---
   function handleSearch() {
     const query = document.getElementById('search-input').value.toLowerCase();
     const resultsContainer = document.getElementById('search-results-list');
-    
-    if (query.trim() === '') {
-      resultsContainer.classList.remove('active');
-    } else {
+    if (query.trim() === '') { resultsContainer.classList.remove('active'); } else {
       resultsContainer.classList.add('active');
       const filtered = transactions.filter(tx => tx.name.toLowerCase().includes(query) || tx.category.toLowerCase().includes(query) || tx.amount.includes(query));
       renderHistory('search-results-list', filtered);
     }
   }
 
-  // --- ФІЛЬТРАЦІЯ ---
   function applyCategoryFilter(catName, cssClass, icon, color) {
     currentCategoryFilter = catName;
     closeSearch();
@@ -428,6 +497,10 @@
     document.getElementById('active-filter-badge').classList.remove('show');
     renderHistory('tx-history-list', transactions);
   }
+
+  // Для довідки Накопичень
+  function openInfo() { document.getElementById('info-overlay').classList.add('open'); }
+  function closeInfo() { document.getElementById('info-overlay').classList.remove('open'); }
 </script>
 
 </body>
