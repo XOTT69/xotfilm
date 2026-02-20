@@ -1,648 +1,236 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Training App Simulator</title>
-  <style>
-    :root{
-      --bg:#0b0b0d;
-      --panel:#111116;
-      --panel2:#171721;
-      --card:#14141b;
-      --text:#f4f4f6;
-      --muted:#a7a7b2;
-      --line:rgba(255,255,255,.08);
-      --accent:#7c6cff;     /* фіолет */
-      --ok:#20e07a;         /* зелений */
-      --shadow: 0 20px 70px rgba(0,0,0,.55);
-      --radius:18px;
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      min-height:100vh;
-      background:
-        radial-gradient(900px 500px at 50% -10%, rgba(124,108,255,.25) 0%, transparent 55%),
-        radial-gradient(700px 420px at 20% 110%, rgba(32,224,122,.18) 0%, transparent 60%),
-        var(--bg);
-      color:var(--text);
-      font: 14px/1.35 -apple-system, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
-      display:flex;
-      justify-content:center;
-      padding:18px;
-    }
+<meta charset="UTF-8"/>
+<title>monobank</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue1:#1744b4;--blue2:#2c60d8;--blue3:#5080ee;
+  --bg:#f2f3f8;--white:#fff;
+  --t1:#1c1c1e;--t2:#636370;--t3:#aeaeb2;
+  --green:#20c96c;--red:#ff3b30;--border:rgba(0,0,0,.08);
+  --sh:0 2px 12px rgba(0,0,0,.08);
+}
+html,body{height:100%;background:#0c0e1a;display:flex;align-items:center;justify-content:center;font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
 
-    /* Desktop wrapper */
-    .wrap{
-      width:min(1100px, 100%);
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap:16px;
-      align-items:start;
-    }
+/* ── PHONE ── */
+.phone{position:relative;width:390px;height:844px;border-radius:52px;background:var(--bg);overflow:hidden;box-shadow:0 0 0 12px #111,0 0 0 14px #2a2a2a,0 40px 100px rgba(0,0,0,.7);flex-shrink:0;}
+.island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:122px;height:34px;background:#000;border-radius:20px;z-index:100;pointer-events:none;}
 
-    /* Phone */
-    .phone{
-      width:390px;
-      height:844px;
-      border-radius:46px;
-      background: #000;
-      border: 14px solid rgba(255,255,255,.07);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      position:sticky;
-      top:18px;
-    }
-    .status{
-      height:54px;
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      padding:10px 16px 8px;
-      color:rgba(255,255,255,.85);
-      font-weight:600;
-      letter-spacing:.2px;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
-      border-bottom: 1px solid rgba(255,255,255,.05);
-    }
-    .screen{
-      height:calc(100% - 54px - 78px);
-      overflow:auto;
-      padding:14px 14px 24px;
-    }
-    .screen::-webkit-scrollbar{ width:10px; }
-    .screen::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.08); border-radius:999px; }
+/* ── STATUS BAR ── */
+.sb{position:absolute;top:0;left:0;right:0;height:52px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 24px 8px;z-index:50;font-size:15px;font-weight:600;transition:color .2s;}
+.sb.white{color:#fff;}
+.sb.dark{color:var(--t1);}
+.sb-right{display:flex;align-items:center;gap:5px;}
 
-    .nav{
-      height:78px;
-      display:flex;
-      gap:6px;
-      padding:10px 10px 14px;
-      border-top: 1px solid rgba(255,255,255,.06);
-      background: rgba(10,10,12,.92);
-      backdrop-filter: blur(16px);
-    }
-    .tab{
-      flex:1;
-      border:0;
-      background: transparent;
-      color: rgba(255,255,255,.7);
-      border-radius: 18px;
-      padding:10px 6px;
-      cursor:pointer;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:6px;
-      transition:.15s ease;
-      font-weight:600;
-      user-select:none;
-    }
-    .tab svg{ opacity:.85; }
-    .tab.active{
-      background: rgba(124,108,255,.16);
-      color: var(--text);
-      outline: 1px solid rgba(124,108,255,.22);
-    }
+/* ── SCREENS ── */
+.screen{position:absolute;top:0;left:0;right:0;bottom:82px;display:none;flex-direction:column;overflow:hidden;background:var(--bg);}
+.screen.active{display:flex;}
+.scrollable{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.scrollable::-webkit-scrollbar{display:none;}
 
-    /* UI blocks */
-    .titleRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 2px 10px; }
-    .h1{ font-size:18px; font-weight:800; letter-spacing:.2px; }
-    .pill{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: rgba(255,255,255,.82);
-      padding:8px 10px;
-      border-radius:999px;
-      font-weight:700;
-      cursor:pointer;
-    }
+/* ── BLUE HEADER (Картки) ── */
+.ch{background:linear-gradient(176deg,#1744b4 0%,#2c60d8 52%,#5080ee 100%);padding:52px 18px 0;flex-shrink:0;color:#fff;}
+.toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 0 12px;}
+.tbl,.tbr{display:flex;align-items:center;gap:8px;}
+.tbi{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0;}
+.tb-gift{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);border-radius:18px;padding:5px 10px;font-size:13px;font-weight:700;cursor:pointer;}
+.tb-div{width:1px;height:18px;background:rgba(255,255,255,.3);}
+.balance-area{text-align:center;padding:4px 0 0;}
+.no-min{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:10px;}
+.bal-row{display:flex;align-items:center;justify-content:center;gap:10px;font-size:38px;font-weight:800;letter-spacing:-.5px;}
+.bal-plus{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
+.bal-sub{font-size:14px;color:rgba(255,255,255,.6);font-weight:500;margin-top:4px;}
 
-    .card{
-      background: linear-gradient(135deg, rgba(124,108,255,.22), rgba(32,224,122,.10));
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: var(--radius);
-      padding:14px;
-      margin:10px 0;
-    }
-    .row{ display:flex; justify-content:space-between; gap:10px; align-items:center; }
-    .big{ font-size:34px; font-weight:900; letter-spacing:.4px; }
-    .muted{ color: var(--muted); font-weight:600; }
+/* ── CARD MOCKUP ── */
+.card-mock{width:252px;height:152px;background:linear-gradient(135deg,#bfc8db 0%,#dde2ee 45%,#c6cdd8 100%);border-radius:16px;margin:18px auto 14px;padding:18px;box-shadow:0 14px 38px rgba(0,0,0,.28);position:relative;cursor:pointer;transition:transform .15s;}
+.card-mock:active{transform:scale(.98);}
+.card-brand{font-size:12px;font-weight:700;color:#3a3f4a;letter-spacing:.4px;}
+.card-chip{width:26px;height:20px;background:linear-gradient(135deg,#c8a848,#e8c86a);border-radius:4px;margin-top:12px;}
+.card-num{position:absolute;bottom:36px;left:18px;font-size:14px;font-weight:600;color:#3a3f4a;letter-spacing:2px;}
+.card-visa{position:absolute;bottom:14px;right:16px;font-size:18px;font-weight:900;color:#3a3f4a;font-style:italic;}
 
-    .grid3{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:10px;
-      margin:10px 0 2px;
-    }
-    .action{
-      background: rgba(255,255,255,.04);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding:10px 10px;
-      cursor:pointer;
-      color: var(--text);
-      font-weight:800;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      align-items:center;
-      justify-content:center;
-      min-height:68px;
-    }
+/* All cards pill */
+.all-pill{display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,.14);border-radius:20px;padding:7px 16px;width:fit-content;margin:0 auto 16px;font-size:14px;font-weight:600;cursor:pointer;}
 
-    .panel{
-      background: rgba(255,255,255,.03);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      overflow:hidden;
-      margin:12px 0;
-    }
-    .panel h2{
-      margin:0;
-      padding:12px 12px;
-      font-size:14px;
-      font-weight:900;
-      letter-spacing:.2px;
-      background: rgba(255,255,255,.03);
-      border-bottom: 1px solid rgba(255,255,255,.06);
-    }
-    .item{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:12px 12px;
-      border-top: 1px solid rgba(255,255,255,.06);
-      cursor:pointer;
-    }
-    .item:first-of-type{ border-top:0; }
-    .left{ display:flex; gap:10px; align-items:center; min-width:0; }
-    .ico{
-      width:36px; height:36px;
-      border-radius: 12px;
-      display:grid; place-items:center;
-      background: rgba(124,108,255,.16);
-      border: 1px solid rgba(124,108,255,.20);
-      flex:0 0 auto;
-    }
-    .txt{ min-width:0; }
-    .txt .t{ font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .txt .s{ color:var(--muted); font-weight:700; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .r{ font-weight:900; color: rgba(255,255,255,.75); }
+/* ── ACTIONS ROW ── */
+.actions{display:flex;padding:14px 10px 18px;background:linear-gradient(176deg,#4a80ee 0%,#5b8ef4 100%);}
+.act{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;}
+.act-circle{width:54px;height:54px;background:rgba(0,0,0,.42);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .12s;}
+.act-circle:active{transform:scale(.94);}
+.act-lbl{color:rgba(255,255,255,.9);font-size:12px;font-weight:600;text-align:center;line-height:1.3;max-width:78px;}
 
-    /* Operator hints */
-    .hint{
-      margin:10px 0;
-      background: rgba(32,224,122,.10);
-      border:1px solid rgba(32,224,122,.20);
-      border-left: 4px solid var(--ok);
-      padding:10px 12px;
-      border-radius: 14px;
-      color: rgba(255,255,255,.9);
-      font-weight:700;
-      display:none;
-    }
-    .hintsOn .hint{ display:block; }
+/* ── CONTENT AREA ── */
+.content{padding:14px;}
 
-    /* Right side (desktop) */
-    .desk{
-      background: rgba(17,17,22,.78);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      padding:14px;
-      box-shadow: 0 18px 60px rgba(0,0,0,.35);
-      backdrop-filter: blur(16px);
-    }
-    .desk h3{ margin:0 0 8px; font-size:14px; letter-spacing:.2px; }
-    .desk p{ margin:0 0 10px; color: var(--muted); font-weight:600; }
-    .desk .line{ height:1px; background: rgba(255,255,255,.08); margin:12px 0; }
+/* Section card */
+.sc{background:var(--white);border-radius:18px;margin-bottom:12px;overflow:hidden;box-shadow:var(--sh);}
+.sc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px;}
+.sc-title{font-size:16px;font-weight:800;color:var(--t1);display:flex;align-items:center;gap:8px;}
+.see-all{color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;}
+.avatars{display:flex;}
+.av{width:22px;height:22px;border-radius:50%;border:1.5px solid #fff;margin-left:-5px;font-size:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6c7ee1,#a78bfa);}
+.av:first-child{margin-left:0;}
 
-    .btn{
-      border:0;
-      background: rgba(124,108,255,.18);
-      color: var(--text);
-      outline: 1px solid rgba(124,108,255,.25);
-      padding:10px 12px;
-      border-radius: 14px;
-      cursor:pointer;
-      font-weight:900;
-      width:100%;
-      margin:6px 0;
-    }
-    .btn.ok{
-      background: rgba(32,224,122,.16);
-      outline-color: rgba(32,224,122,.25);
-    }
+/* Transaction */
+.tx{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .1s;}
+.tx:active{background:#f7f7fb;}
+.tx:not(:last-child){border-bottom:1px solid rgba(0,0,0,.05);}
+.tx-ico{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.tx-info{flex:1;min-width:0;}
+.tx-name{font-size:15px;font-weight:600;color:var(--t1);}
+.tx-date{font-size:13px;color:var(--t2);font-weight:500;margin-top:1px;}
+.tx-amt{font-size:15px;font-weight:700;white-space:nowrap;}
+.tx-amt.plus{color:var(--green);}
+.tx-amt.minus{color:var(--t1);}
 
-    /* Modal */
-    .modalBack{
-      position:fixed; inset:0;
-      background: rgba(0,0,0,.55);
-      display:none;
-      align-items:center; justify-content:center;
-      padding:18px;
-    }
-    .modalBack.open{ display:flex; }
-    .modal{
-      width:min(520px, 100%);
-      background: rgba(17,17,22,.92);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .modal .mhead{
-      display:flex; justify-content:space-between; align-items:center;
-      padding:12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      font-weight:900;
-    }
-    .modal .mbody{ padding:12px; color: rgba(255,255,255,.86); font-weight:700; }
-    .x{
-      border:0; background: transparent; color: rgba(255,255,255,.85);
-      font-size:18px; cursor:pointer; padding:6px 10px; border-radius:12px;
-    }
-    .watermark{
-      position:absolute; right:14px; top:62px;
-      color: rgba(255,255,255,.22);
-      font-weight:900;
-      font-size:11px;
-      letter-spacing:.8px;
-      text-transform:uppercase;
-      user-select:none;
-    }
+/* Limits card */
+.limits-c{border:1.5px solid var(--blue2);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:12px;cursor:pointer;background:#fff;transition:background .1s;}
+.limits-c:active{background:#eef2fd;}
+.lim-ico{width:40px;height:40px;background:rgba(44,96,216,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.lim-t{font-size:15px;font-weight:700;color:var(--t1);}
+.lim-s{font-size:13px;color:var(--t2);font-weight:500;margin-top:2px;}
 
-    @media (max-width: 980px){
-      .wrap{ grid-template-columns: 1fr; justify-items:center; }
-      .phone{ position:relative; top:auto; }
-    }
-  </style>
+/* Useful */
+.useful{background:#fff;border-radius:18px;padding:14px;box-shadow:var(--sh);}
+.useful-title{font-size:16px;font-weight:800;color:var(--t1);margin-bottom:12px;}
+.cur-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.cur-tile{background:var(--bg);border-radius:12px;padding:10px 12px;}
+.cur-flag{font-size:20px;display:block;margin-bottom:3px;}
+.cur-name{font-size:11px;color:var(--t2);font-weight:600;}
+.cur-rate{font-size:14px;font-weight:800;color:var(--t1);}
+.util-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.util-tile{background:var(--bg);border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;min-height:80px;justify-content:center;transition:background .1s;}
+.util-tile:active{background:#e8e9ef;}
+.util-ico{font-size:28px;}
+.util-lbl{font-size:12px;font-weight:700;color:var(--t1);text-align:center;line-height:1.3;}
+
+/* ── GENERIC SCREEN NAV ── */
+.gen-header{display:flex;align-items:center;padding:58px 16px 12px;gap:10px;flex-shrink:0;background:#fff;border-bottom:1px solid var(--border);}
+.gen-header.blue{background:linear-gradient(176deg,var(--blue1) 0%,var(--blue2) 100%);border:none;}
+.gen-header.blue .scr-title{color:#fff;}
+.back{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--t1);flex-shrink:0;}
+.back.white-btn{background:rgba(255,255,255,.18);color:#fff;}
+.scr-title{font-size:18px;font-weight:800;color:var(--t1);}
+
+/* List items */
+.li{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;background:#fff;transition:background .1s;}
+.li:active{background:#f7f7fb;}
+.li:not(:last-child){border-bottom:1px solid rgba(0,0,0,.05);}
+.li-ico{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.li-body{flex:1;}
+.li-t{font-size:15px;font-weight:700;color:var(--t1);}
+.li-s{font-size:13px;color:var(--t2);font-weight:500;margin-top:2px;}
+.li-r{color:var(--t3);font-size:16px;font-weight:500;}
+
+/* Credit card hero */
+.credits-blue{background:linear-gradient(176deg,var(--blue1) 0%,var(--blue2) 52%,var(--blue3) 100%);padding:52px 20px 22px;flex-shrink:0;color:#fff;text-align:center;}
+.credits-lbl{font-size:13px;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;}
+.credits-bal{font-size:36px;font-weight:800;letter-spacing:-.5px;}
+.credits-sub{font-size:14px;color:rgba(255,255,255,.6);font-weight:500;margin-top:4px;}
+
+/* Savings green header */
+.savings-header{background:linear-gradient(176deg,#1b8a42 0%,#28a856 52%,#3ac870 100%);padding:52px 20px 22px;flex-shrink:0;color:#fff;text-align:center;}
+
+/* Ще / Market white header */
+.white-header{padding:54px 16px 14px;background:#fff;flex-shrink:0;}
+.page-title{font-size:28px;font-weight:900;color:var(--t1);}
+.page-sub{font-size:14px;color:var(--t2);font-weight:500;margin-top:4px;}
+.section-label{font-size:13px;color:var(--t3);font-weight:700;letter-spacing:.3px;padding:14px 16px 6px;background:var(--bg);}
+
+/* Form */
+.form-pad{padding:14px;}
+.form-card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:var(--sh);}
+.field{padding:13px 16px;border-bottom:1px solid var(--border);}
+.field:last-child{border:none;}
+.field-label{font-size:12px;color:var(--t2);font-weight:600;margin-bottom:3px;}
+.field-val{font-size:16px;font-weight:700;color:var(--t1);}
+.field-val input{border:none;outline:none;font-size:16px;font-weight:700;color:var(--t1);width:100%;font-family:inherit;background:transparent;}
+.prim-btn{display:block;width:calc(100% - 28px);margin:16px 14px;padding:16px;background:var(--green);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;text-align:center;transition:opacity .15s;}
+.prim-btn:active{opacity:.85;}
+
+/* ── BOTTOM NAV ── */
+.nav{position:absolute;bottom:0;left:0;right:0;height:82px;background:#fff;border-top:1px solid rgba(0,0,0,.07);display:flex;padding:10px 6px 20px;gap:2px;z-index:20;box-shadow:0 -2px 16px rgba(0,0,0,.05);}
+.ntab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border-radius:12px;padding:6px 2px;transition:background .12s;}
+.ntab:active{background:rgba(255,59,48,.06);}
+.ntab .nlbl{font-size:10px;font-weight:700;}
+.ntab.active .nlbl{color:var(--red);}
+.ntab:not(.active) .nlbl{color:var(--t3);}
+.ntab svg{display:block;}
+
+/* Toast */
+.toast{position:absolute;bottom:96px;left:16px;right:16px;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);color:#fff;border-radius:14px;padding:13px 16px;font-weight:700;font-size:14px;text-align:center;z-index:300;display:none;pointer-events:none;}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <!-- Phone -->
-    <div class="phone" id="phone">
-      <div class="status">
-        <span id="time">16:31</span>
-        <span style="opacity:.85">Training</span>
-        <span style="opacity:.85">•••</span>
-      </div>
-
-      <div class="watermark">DEMO • NO REAL DATA</div>
-
-      <div class="screen" id="screen">
-        <!-- rendered by JS -->
-      </div>
-
-      <div class="nav" id="nav">
-        <button class="tab active" data-tab="cards" title="Картки">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" opacity=".9"/>
-            <rect x="6" y="10" width="6" height="2" rx="1" fill="currentColor" opacity=".9"/>
-          </svg>
-          <span>Картки</span>
-        </button>
-        <button class="tab" data-tab="credits" title="Кредити">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M7 7h10v10H7z" stroke="currentColor" opacity=".9"/>
-            <path d="M9 12h6" stroke="currentColor" opacity=".9"/>
-          </svg>
-          <span>Кредити</span>
-        </button>
-        <button class="tab" data-tab="savings" title="Накопичення">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3v18" stroke="currentColor" opacity=".9"/>
-            <path d="M7 7h10" stroke="currentColor" opacity=".9"/>
-            <path d="M7 17h10" stroke="currentColor" opacity=".9"/>
-          </svg>
-          <span>Накопичення</span>
-        </button>
-        <button class="tab" data-tab="more" title="Ще">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <circle cx="6" cy="12" r="1.6" fill="currentColor" opacity=".9"/>
-            <circle cx="12" cy="12" r="1.6" fill="currentColor" opacity=".9"/>
-            <circle cx="18" cy="12" r="1.6" fill="currentColor" opacity=".9"/>
-          </svg>
-          <span>Ще</span>
-        </button>
-        <button class="tab" data-tab="market" title="Маркет">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M6 8h12l-1 12H7L6 8z" stroke="currentColor" opacity=".9"/>
-            <path d="M9 8a3 3 0 0 1 6 0" stroke="currentColor" opacity=".9"/>
-          </svg>
-          <span>Маркет</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Desktop panel -->
-    <div class="desk">
-      <h3>Панель тренера</h3>
-      <p>Це “копія” за логікою (екрани/кнопки/навігація), але без реальних даних; тексти і сценарії можеш міняти прямо в JSON нижче.</p>
-
-      <button class="btn ok" id="toggleHints">Підказки оператора: Вимкнено</button>
-      <button class="btn" id="resetFlow">Скинути на стартовий екран</button>
-
-      <div class="line"></div>
-
-      <h3>Що далі зробимо швидко</h3>
-      <p>1) Додамо підменю “Картки → конкретна картка → ліміти/блокування/виписка”.</p>
-      <p>2) Додамо “Кредити/канікули/реструктуризації” як дерево екранів.</p>
-      <p>3) Додамо пошук по сценаріях для операторів.</p>
+<div class="phone" id="phone">
+  <div class="island"></div>
+  <div class="sb white" id="sb">
+    <span id="sb-time">16:29</span>
+    <div class="sb-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="4" width="3" height="8" rx="1"/><rect x="4.5" y="3" width="3" height="9" rx="1" opacity=".6"/><rect x="9" y="1" width="3" height="11" rx="1" opacity=".45"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" opacity=".3"/></svg>
+      <svg width="16" height="12" viewBox="0 0 18 14" fill="currentColor"><path d="M9 2.5C12.3 2.5 15.3 4 17.2 6.4L18 5.5C15.9 2.8 12.6 1 9 1S2.1 2.8 0 5.5l.8.9C2.7 4 5.7 2.5 9 2.5z" opacity=".3"/><path d="M9 5.5c2.2 0 4.2.9 5.6 2.4l.8-.9A8.5 8.5 0 0 0 9 4a8.5 8.5 0 0 0-6.4 3l.8.9A6.5 6.5 0 0 1 9 5.5z" opacity=".6"/><path d="M9 8.5c1.2 0 2.2.5 2.9 1.3l.8-.9A5 5 0 0 0 9 7a5 5 0 0 0-3.7 1.9l.8.9A3.5 3.5 0 0 1 9 8.5z"/><circle cx="9" cy="13" r="1.5"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="currentColor"><rect x="0" y="1" width="22" height="10" rx="3" stroke="currentColor" stroke-width="1" fill="none" opacity=".35"/><rect x="23" y="4" width="2" height="4" rx="1" opacity=".35"/><rect x="1" y="2" width="18" height="8" rx="2"/></svg>
     </div>
   </div>
 
-  <!-- Modal -->
-  <div class="modalBack" id="modalBack">
-    <div class="modal">
-      <div class="mhead">
-        <div id="mTitle">Дія</div>
-        <button class="x" id="mClose">×</button>
-      </div>
-      <div class="mbody" id="mBody"></div>
-    </div>
-  </div>
+  <div class="toast" id="toast"></div>
 
-<script>
-  // ----- State -----
-  const app = {
-    tab: 'cards',
-    route: 'root',
-    hints: false,
-  };
-
-  // Тут ми задаємо “копію” логіки без даних: екрани, секції, кнопки, переходи.
-  const ROUTES = {
-    cards: {
-      root: {
-        title: 'Картки',
-        rightPill: 'Усі',
-        hint: 'Оператор: попросіть клієнта відкрити вкладку “Картки”. Далі — “Усі картки” або вибір конкретної.',
-        blocks: [
-          { type:'card', big:'₴ 0', sub:'Демо баланс • Без реальних даних' },
-          { type:'grid3', actions:[
-            { id:'to_card', label:'Переказ на картку', go:['cards','to_card'] },
-            { id:'iban', label:'Платіж за IBAN', go:['cards','iban'] },
-            { id:'other', label:'Інші платежі', go:['cards','other_pay'] },
-          ]},
-          { type:'panel', title:'Операції', items:[
-            { t:'Вхідний переказ', s:'Демо операція', r:'+ ₴ 0', action:{ modal:'Операція', text:'Тут буде поп‑ап з підказкою оператору та умовними деталями.' } },
-            { t:'Покупка', s:'Демо мерчант', r:'− ₴ 0', action:{ modal:'Операція', text:'Немає реальних мерчантів/сум. Тільки тренування.' } },
-          ]},
-          { type:'panel', title:'Корисне', items:[
-            { t:'Ліміти та обмеження', s:'Для витрат з карток', r:'›', action:{ go:['cards','limits'] } },
-            { t:'Виписки та довідки', s:'Документи', r:'›', action:{ go:['cards','statements'] } },
-            { t:'Служба підтримки', s:'Чат/дзвінок', r:'›', action:{ go:['cards','support'] } },
-          ]},
-        ]
-      },
-
-      limits: {
-        title: 'Ліміти та обмеження',
-        hint: 'Оператор: поясніть, що тут клієнт налаштовує ліміти; далі уточніть, для якого типу операцій потрібен ліміт.',
-        blocks: [
-          { type:'panel', title:'Ліміти', items:[
-            { t:'Інтернет‑платежі', s:'Демо', r:'›', action:{ modal:'Інтернет‑платежі', text:'Тут буде форма з повзунком/перемикачем (додамо далі).' } },
-            { t:'Зняття готівки', s:'Демо', r:'›', action:{ modal:'Зняття', text:'Тренажер: без реальних сум.' } },
-          ]},
-        ]
-      },
-
-      statements: {
-        title: 'Виписки та довідки',
-        hint: 'Оператор: уточніть період і тип документа. Після цього — підкажіть шлях “Експорт/Надіслати”.',
-        blocks: [
-          { type:'panel', title:'Документи', items:[
-            { t:'Виписка за період', s:'PDF/CSV (демо)', r:'›', action:{ modal:'Виписка', text:'Далі можна зробити кроки: вибір дати → сформувати → надіслати.' } },
-            { t:'Довідка', s:'Демо', r:'›', action:{ modal:'Довідка', text:'Сюди додамо шаблони текстів для оператора.' } },
-          ]},
-        ]
-      },
-
-      support: {
-        title: 'Підтримка',
-        hint: 'Оператор: якщо клієнт у застосунку — ведіть його в чат; якщо ні — альтернативний канал.',
-        blocks: [
-          { type:'panel', title:'Канали', items:[
-            { t:'Чат у застосунку', s:'Тренажер', r:'›', action:{ modal:'Чат', text:'Тут зробимо готові фрази й макет діалогу.' } },
-            { t:'FAQ', s:'Поширені запитання', r:'›', action:{ modal:'FAQ', text:'Додамо базу питань/відповідей для операторів.' } },
-          ]},
-        ]
-      },
-
-      to_card: { title:'Переказ на картку', hint:'Оператор: попросіть номер картки/ПІБ (без збереження в тренажері).', blocks:[
-        { type:'panel', title:'Форма (демо)', items:[
-          { t:'Номер картки', s:'•••• •••• •••• ••••', r:'', action:{ modal:'Поле', text:'Тут буде інпут (демо), без реальних даних.' } },
-          { t:'Сума', s:'₴ 0', r:'', action:{ modal:'Поле', text:'Демо сума.' } },
-          { t:'Підтвердити', s:'', r:'›', action:{ modal:'Готово', text:'В тренажері це просто підтвердження кроку.' } },
-        ]}
-      ]},
-      iban: { title:'Платіж за IBAN', hint:'Оператор: уточніть IBAN і призначення платежу.', blocks:[
-        { type:'panel', title:'Кроки', items:[
-          { t:'IBAN', s:'UA••••', r:'', action:{ modal:'IBAN', text:'Демо поле.' } },
-          { t:'Призначення', s:'', r:'', action:{ modal:'Призначення', text:'Демо поле.' } },
-        ]}
-      ]},
-      other_pay: { title:'Інші платежі', hint:'Оператор: допоможіть знайти категорію/шаблон.', blocks:[
-        { type:'panel', title:'Категорії', items:[
-          { t:'Комунальні', s:'Демо', r:'›', action:{ modal:'Комунальні', text:'Додамо підекрани під твої сценарії.' } },
-          { t:'Мобільний', s:'Демо', r:'›', action:{ modal:'Мобільний', text:'Демо.' } },
-        ]}
-      ]},
-    },
-
-    credits: {
-      root: {
-        title: 'Кредити',
-        rightPill: 'Усі',
-        hint: 'Оператор: уточніть тип кредиту; далі ведіть по пункту меню.',
-        blocks: [
-          { type:'card', big:'₴ 0', sub:'Немає мінімального платежу (демо)' },
-          { type:'panel', title:'Розділи', items:[
-            { t:'Кредитні канікули', s:'Сценарій', r:'›', action:{ modal:'Канікули', text:'Додамо детальний скрипт оператора і кроки в тренажері.' } },
-            { t:'Реструктуризація', s:'Сценарій', r:'›', action:{ modal:'Реструктуризація', text:'Додамо кроки.' } },
-          ]},
-        ]
-      }
-    },
-
-    savings: { root:{ title:'Накопичення', hint:'Оператор: поясніть різницю між “банками/цілями/скарбничкою” (як у вашому продукті).', blocks:[
-      { type:'panel', title:'Накопичення (демо)', items:[
-        { t:'Банки', s:'Демо', r:'›', action:{ modal:'Банки', text:'Додамо екран/кроки.' } },
-        { t:'Цілі', s:'Демо', r:'›', action:{ modal:'Цілі', text:'Додамо екран/кроки.' } },
-      ]}
-    ]}},
-    more: { root:{ title:'Ще', hint:'Оператор: звідси — налаштування, довідки, підтримка.', blocks:[
-      { type:'panel', title:'Меню', items:[
-        { t:'Налаштування', s:'Демо', r:'›', action:{ modal:'Налаштування', text:'Додамо.' } },
-        { t:'Безпека', s:'Демо', r:'›', action:{ modal:'Безпека', text:'Додамо.' } },
-      ]}
-    ]}},
-    market: { root:{ title:'Маркет', hint:'Оператор: підкажіть, де знайти продукт/послугу.', blocks:[
-      { type:'panel', title:'Категорії', items:[
-        { t:'Послуги', s:'Демо', r:'›', action:{ modal:'Послуги', text:'Додамо.' } },
-        { t:'Страхування', s:'Демо', r:'›', action:{ modal:'Страхування', text:'Додамо.' } },
-      ]}
-    ]}},
-  };
-
-  // ----- Rendering -----
-  const $screen = document.getElementById('screen');
-  const $phone = document.getElementById('phone');
-
-  function currentRoute(){
-    const tab = ROUTES[app.tab] || {};
-    return tab[app.route] || tab.root;
-  }
-
-  function el(html){
-    const d = document.createElement('div');
-    d.innerHTML = html.trim();
-    return d.firstChild;
-  }
-
-  function render(){
-    const r = currentRoute();
-    $screen.innerHTML = '';
-
-    // Header row
-    const head = el(`
-      <div class="titleRow">
-        <div class="h1">${escapeHtml(r.title || '')}</div>
-        <button class="pill" id="pillBtn">${escapeHtml(r.rightPill || 'Усі')}</button>
-      </div>
-    `);
-    $screen.appendChild(head);
-
-    // Hint
-    const hint = el(`<div class="hint">${escapeHtml(r.hint || '')}</div>`);
-    $screen.appendChild(hint);
-
-    // Blocks
-    (r.blocks || []).forEach(b => {
-      if (b.type === 'card'){
-        $screen.appendChild(el(`
-          <div class="card">
-            <div class="row">
-              <div class="big">${escapeHtml(b.big || '₴ 0')}</div>
-              <div class="muted">demo</div>
-            </div>
-            <div class="muted" style="margin-top:6px;">${escapeHtml(b.sub || '')}</div>
+  <!-- ════════════════════════════
+       SCREEN: КАРТКИ
+  ════════════════════════════ -->
+  <div class="screen active" id="s-cards">
+    <div class="scrollable">
+      <div class="ch">
+        <div class="toolbar">
+          <div class="tbl">
+            <div class="tbi" onclick="nav('s-more')">🐱</div>
+            <div class="tbi">💬</div>
           </div>
-        `));
-      }
-      if (b.type === 'grid3'){
-        const g = el(`<div class="grid3"></div>`);
-        (b.actions || []).forEach(a => {
-          const btn = el(`<button class="action">${escapeHtml(a.label || '')}</button>`);
-          btn.onclick = () => navTo(a.go, a.modal);
-          g.appendChild(btn);
-        });
-        $screen.appendChild(g);
-      }
-      if (b.type === 'panel'){
-        const p = el(`<div class="panel"><h2>${escapeHtml(b.title || '')}</h2></div>`);
-        (b.items || []).forEach(it => {
-          const row = el(`
-            <div class="item">
-              <div class="left">
-                <div class="ico">⬤</div>
-                <div class="txt">
-                  <div class="t">${escapeHtml(it.t || '')}</div>
-                  <div class="s">${escapeHtml(it.s || '')}</div>
-                </div>
-              </div>
-              <div class="r">${escapeHtml(it.r || '')}</div>
-            </div>
-          `);
-          row.onclick = () => {
-            if (it.action?.go) navTo(it.action.go);
-            else if (it.action?.modal) openModal(it.action.modal, it.action.text || '');
-          };
-          p.appendChild(row);
-        });
-        $screen.appendChild(p);
-      }
-    });
-
-    // Hints toggle class
-    $phone.classList.toggle('hintsOn', app.hints);
-
-    // Pill action
-    document.getElementById('pillBtn').onclick = () => openModal('Дія', 'Це тренажер: тут можна підв’язати список “Усі/Фільтр/Пошук”.');
-  }
-
-  function navTo(go){
-    if (!go) return;
-    const [tab, route] = go;
-    app.tab = tab;
-    app.route = route || 'root';
-    syncTabs();
-    render();
-  }
-
-  function syncTabs(){
-    document.querySelectorAll('.tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.tab === app.tab);
-    });
-  }
-
-  // ----- Modal -----
-  const $mb = document.getElementById('modalBack');
-  const $mt = document.getElementById('mTitle');
-  const $md = document.getElementById('mBody');
-  const $mc = document.getElementById('mClose');
-  $mc.onclick = () => $mb.classList.remove('open');
-  $mb.onclick = (e) => { if (e.target === $mb) $mb.classList.remove('open'); };
-
-  function openModal(title, body){
-    $mt.textContent = title || 'Дія';
-    $md.textContent = body || '';
-    $mb.classList.add('open');
-  }
-
-  // ----- Events -----
-  document.getElementById('nav').addEventListener('click', (e) => {
-    const btn = e.target.closest('.tab');
-    if (!btn) return;
-    app.tab = btn.dataset.tab;
-    app.route = 'root';
-    syncTabs();
-    render();
-  });
-
-  document.getElementById('toggleHints').onclick = () => {
-    app.hints = !app.hints;
-    document.getElementById('toggleHints').textContent = `Підказки оператора: ${app.hints ? 'Увімкнено' : 'Вимкнено'}`;
-    render();
-  };
-
-  document.getElementById('resetFlow').onclick = () => {
-    app.tab = 'cards';
-    app.route = 'root';
-    syncTabs();
-    render();
-  };
-
-  // Clock (cosmetic)
-  function tick(){
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2,'0');
-    const mm = String(d.getMinutes()).padStart(2,'0');
-    document.getElementById('time').textContent = `${hh}:${mm}`;
-  }
-  setInterval(tick, 1000 * 15);
-  tick();
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  }
-
-  // Init
-  syncTabs();
-  render();
-</script>
-</body>
-</html>
+          <div class="tbr">
+            <div class="tb-gift" onclick="toast('Кешбек: 52 ₴')">🎁 52 ₴</div>
+            <div class="tb-div"></div>
+            <div class="tbi">😺</div>
+            <div class="tbi">📊</div>
+            <div class="tbi">⬇️</div>
+          </div>
+        </div>
+        <div class="balance-area">
+          <div class="no-min">📷 Немає мінімального платежу</div>
+          <div class="bal-row">
+            <div class="bal-plus">+</div>
+            <span>24 055 ₴</span>
+          </div>
+          <div class="bal-sub">Використано • 15 945 з 40 000 ₴</div>
+        </div>
+        <div class="card-mock" onclick="nav('s-card-detail')">
+          <div class="card-brand">monobank</div>
+          <div class="card-chip"></div>
+          <div class="card-num">4441 &nbsp;****&nbsp; ****&nbsp; 3950</div>
+          <div class="card-visa">VISA</div>
+        </div>
+        <div class="all-pill" onclick="nav('s-all-cards')">💳 Усі картки</div>
+      </div>
+      <div class="actions">
+        <div class="act" onclick="nav('s-transfer')">
+          <div class="act-circle">💳</div>
+          <div class="act-lbl">Переказати на картку</div>
+        </div>
+        <div class="act" onclick="nav('s-iban')">
+          <div class="act-circle">📄</div>
+          <div class="act-lbl">Платіж за IBAN</div>
+        </div>
+        <div class="act" onclick="nav('s-other-pay')">
+          <div class="act-circle">⚡</div>
+          <div class="act-lbl">Інші платежі</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="sc">
+          <div class="sc-head">
+            <div class="sc-title">Операції <div class="avatars"><div class="av">👤</div><div class="av" style="background:linear-gradient(135deg,#d4a5d4,#b06fc0)">👩</div></div></div>
+            <div class="see-all" onclick="nav('s-operations')">Усі ›</div>
+          </div>
+          <div class="tx"
