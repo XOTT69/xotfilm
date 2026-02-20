@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>mono - Накопичення</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* --- ОСНОВНИЙ ЕКРАН НАКОПИЧЕННЯ --- */
+    .savings-header {
+      background: linear-gradient(180deg, #18227c 0%, #1c5298 50%, #4480c8 100%);
+      padding: 50px 20px 20px;
+      color: white;
+      position: relative;
+    }
+    
+    .sav-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sav-title { font-size: 16px; font-weight: 600; text-align: center; flex: 1; }
+    .info-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; cursor: pointer; }
+    
+    .sav-balance { font-size: 56px; font-weight: 800; text-align: center; margin-bottom: 30px; letter-spacing: -2px;}
+    
+    .action-buttons { display: flex; gap: 12px; margin-bottom: 20px; }
+    .action-btn { flex: 1; background: #fff; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; color: #000; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;}
+    .action-btn:active { background: #f0f0f0; }
+    .btn-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;}
+    .icon-depo { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .icon-banka { background: linear-gradient(135deg, #f43f5e, #fb7185); }
+
+    .white-content { background: var(--bg-white); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; margin-top: -24px; position: relative; z-index: 2; min-height: 500px;}
+    
+    .section-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; color: #000;}
+    .section-subtitle { font-size: 13px; color: var(--text-sec); margin-bottom: 16px; font-weight: 500;}
+
+    .banka-item { display: flex; align-items: center; gap: 16px; background: transparent; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .banka-icon { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #fb7185, #f43f5e); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
+    .banka-details { flex: 1; }
+    .banka-name { font-size: 16px; font-weight: 600; color: #000; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .banka-progress { font-size: 13px; color: var(--text-sec); font-weight: 500;}
+
+    /* ====== OVERLAY: ПРО НАКОПИЧЕННЯ ====== */
+    .info-overlay {
+      position: absolute; top: 100%; left: 0; width: 100%; height: 100%;
+      background: #fff; z-index: 50; transition: top 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      display: flex; flex-direction: column; border-radius: 40px; overflow: hidden;
+    }
+    .info-overlay.open { top: 0; }
+
+    .info-header { padding: 40px 20px 16px; display: flex; align-items: center; background: #fff; position: sticky; top: 0; z-index: 60; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .back-btn { font-size: 24px; color: #ff3b30; cursor: pointer; width: 30px; }
+    .info-title { flex: 1; text-align: center; font-size: 18px; font-weight: 700; padding-right: 30px;}
+
+    .info-content { flex: 1; overflow-y: auto; padding: 20px 20px 60px; background: #f9f9f9; }
+    .info-content::-webkit-scrollbar { display: none; }
+
+    /* Ілюстрація з котом */
+    .cat-hero { text-align: center; margin-bottom: 30px; }
+    .cat-hero-img { width: 140px; height: 140px; background: #4ba0ff; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 70px; }
+
+    /* Плашки (Картки) */
+    .info-card { border-radius: 20px; padding: 20px; margin-bottom: 24px; color: white; }
+    .card-blue { background: #2581e6; }
+    .card-coral { background: #e6857a; }
+    .card-teal { background: #4dbab9; }
+    .card-darkblue { background: #4a75a7; }
+    .card-purple { background: #964a9f; }
+    .card-olive { background: #717d50; }
+    .card-pink { background: #b11693; }
+
+    .card-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+    
+    .info-list { display: flex; flex-direction: column; gap: 16px; }
+    .info-list-item { display: flex; align-items: center; gap: 12px; }
+    .info-list-icon { width: 36px; height: 36px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 16px; flex-shrink: 0; font-weight: bold;}
+    .info-list-text { font-size: 14px; font-weight: 500; line-height: 1.3; }
+
+    /* Текстові блоки (Що таке банка, Депозит) */
+    .text-block { margin-bottom: 20px; padding: 0 10px;}
+    .text-block h3 { font-size: 20px; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;}
+    .text-block p { font-size: 15px; color: #333; line-height: 1.5; margin-bottom: 12px; font-weight: 500;}
+
+    /* Блок ФГВФО */
+    .guarantee-box { background: white; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 16px; margin-bottom: 24px; border: 1px solid rgba(0,0,0,0.05); }
+    .guarantee-icon { font-size: 24px; }
+    .guarantee-text { font-size: 13px; font-weight: 600; color: #000; }
+
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- ====== ГОЛОВНИЙ ЕКРАН НАКОПИЧЕННЯ ====== -->
+  <div class="scroll-area">
+    <div class="savings-header">
+      <div class="sav-top-bar">
+        <div style="width: 28px;"></div> <!-- пустота для балансу -->
+        <div class="sav-title">Накопичення в гривнях</div>
+        <div class="info-btn" onclick="openInfo()">i</div>
+      </div>
+      
+      <div class="sav-balance">1 ₴</div>
+
+      <div class="action-buttons">
+        <div class="action-btn" onclick="alert('Відкриття депозиту')">
+          <div class="btn-icon icon-depo">@</div>
+          Відкрити<br>депозит
+        </div>
+        <div class="action-btn" onclick="alert('Створення Банки')">
+          <div class="btn-icon icon-banka">🥛</div>
+          Відкрити<br>Банку
+        </div>
+      </div>
+    </div>
+
+    <div class="white-content">
+      <div class="section-title">Банки</div>
+      <div class="section-subtitle">У гривні 1 ₴</div>
+      
+      <div class="banka-item" onclick="alert('Деталі банки')">
+        <div class="banka-icon">🥛</div>
+        <div class="banka-details">
+          <div class="banka-name">
+            На корм котику
+            <span>3 000 ₴</span>
+          </div>
+          <!-- Прогрес-бар, якщо потрібно, можна додати. Поки просто текст як на скріні -->
+          <div class="banka-progress">Накопичено 1 ₴</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== OVERLAY: ПРО НАКОПИЧЕННЯ ====== -->
+  <div class="info-overlay" id="info-overlay">
+    <div class="info-header">
+      <div class="back-btn" onclick="closeInfo()">←</div>
+      <div class="info-title">Про накопичення</div>
+    </div>
+
+    <div class="info-content">
+      
+      <div class="cat-hero">
+        <div class="cat-hero-img">😼</div>
+      </div>
+
+      <!-- Синя плашка: Що в цьому розділі -->
+      <div class="info-card card-blue">
+        <div class="card-title">У цьому розділі ви можете</div>
+        <div class="info-list">
+          <div class="info-list-item"><div class="info-list-icon">🥛</div><div class="info-list-text">Накопичити гроші в Банці</div></div>
+          <div class="info-list-item"><div class="info-list-icon">@</div><div class="info-list-text">Оформити депозит</div></div>
+          <div class="info-list-item"><div class="info-list-icon">🔱</div><div class="info-list-text">Купити облігації ОВДП</div></div>
+        </div>
+      </div>
+
+      <!-- Текст: Банка -->
+      <div class="text-block">
+        <h3>🚀 Що таке Банка?</h3>
+        <p>Це сервіс накопичення від monobank, який дозволить накопичувати гроші непомітно для вас.</p>
+        <p>Банку можна оформити у гривні, доларах США та євро. Відкривається без початкової суми та безстроково.</p>
+        <p>Також ви можете пожертвувати гроші в благодійні Банки або розпочати власний збір!</p>
+      </div>
+
+      <!-- Коралова плашка -->
+      <div class="info-card card-coral">
+        <div class="card-title">Поповнення за посиланням</div>
+        <p style="font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 12px;">Це опція, за допомогою якої можна організувати благодійний збір або накопичувати разом із друзями (наприклад, на подарунок другу або «на штори» в клас)</p>
+        <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 12px; font-size: 13px;">Посилання можна опублікувати в соціальних мережах, на сайті або просто надіслати через месенджер</div>
+      </div>
+
+      <!-- Бірюзова плашка -->
+      <div class="info-card card-teal">
+        <div class="card-title">Як накопичувати в Банку?</div>
+        <div class="info-list">
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4dbab9">💳</div><div class="info-list-text">Разове або регулярне поповнення на вибрану суму</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4dbab9">%</div><div class="info-list-text">Перераховувати процент або округляти суму кожної витрати</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4dbab9">☀️</div><div class="info-list-text">Щодня округляти баланс власних коштів на картках</div></div>
+        </div>
+      </div>
+
+      <!-- Текст: Депозит -->
+      <div class="text-block" style="margin-top: 40px;">
+        <h3>💰 Депозит</h3>
+        <p>Ви можете відкрити депозит у гривнях, доларах США чи євро</p>
+      </div>
+
+      <!-- Темно-синя плашка -->
+      <div class="info-card card-darkblue">
+        <div class="card-title">Які можливості у депозитів?</div>
+        <div class="info-list">
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4a75a7">💵</div><div class="info-list-text">Мінімальна сума - 1 000 гривень, 100 доларів США або євро</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4a75a7">⚠️</div><div class="info-list-text">Поповнення не повинно перевищувати початкову суму депозиту</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4a75a7">%</div><div class="info-list-text">Щомісячна виплата або капіталізація відсотків</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#4a75a7">💼</div><div class="info-list-text">Можна оформити з правом дострокового розірвання</div></div>
+        </div>
+      </div>
+
+      <!-- Фіолетова плашка -->
+      <div class="info-card card-purple">
+        <div class="card-title">На який строк можна оформити депозит?</div>
+        <div class="info-list" style="margin-bottom: 16px;">
+          <div class="info-list-item"><div class="info-list-icon" style="color:#964a9f">₴</div><div class="info-list-text">Від 3 до 24 місяців депозит у гривні</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#964a9f">🌐</div><div class="info-list-text">Від 3 до 12 місяців у валюті</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#964a9f">💼</div><div class="info-list-text">Із достроковим розірванням</div></div>
+        </div>
+        <div style="background: rgba(255,255,255,0.15); padding: 16px; border-radius: 12px; font-size: 13px; line-height: 1.4;">
+          Можливе дострокове розірвання депозитів у гривні через 1 місяць за ставкою 0,01% річних.<br><br>
+          Для цього потрібно вибрати опцію «Розірвати достроково» за два банківські дні до дати розірвання
+        </div>
+      </div>
+
+      <div class="guarantee-box">
+        <div class="guarantee-icon">👐</div>
+        <div class="guarantee-text">Захищені Фондом гарантування вкладів фізичних осіб України</div>
+      </div>
+
+      <!-- Текст: ОВДП -->
+      <div class="text-block" style="margin-top: 40px;">
+        <h3>🇺🇦 Облігації ОВДП</h3>
+        <p>Ви можете купити облігації внутрішньої державної позики (ОВДП) – це боргові цінні папери держави, випущені Міністерством фінансів України.</p>
+        <p>Продаючи такі цінні папери, держава зобов'язується провести виплати за ними у заздалегідь передбачений строк із фіксованою прибутковістю.</p>
+      </div>
+
+      <!-- Оливкова плашка -->
+      <div class="info-card card-olive">
+        <div class="card-title">Гривневі ОВДП</div>
+        <div class="info-list">
+          <div class="info-list-item"><div class="info-list-icon" style="color:#717d50">✔️</div><div class="info-list-text">Випускаються у гривні</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#717d50">💵</div><div class="info-list-text">Виплата доходу у гривні</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#717d50">🛍️</div><div class="info-list-text">Покупка за гривні</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#717d50">₴</div><div class="info-list-text">Продаж у гривні</div></div>
+        </div>
+      </div>
+
+      <!-- Рожева плашка -->
+      <div class="info-card card-pink">
+        <div class="card-title">Валютні ОВДП</div>
+        <div class="info-list">
+          <div class="info-list-item"><div class="info-list-icon" style="color:#b11693">✔️</div><div class="info-list-text">Випускаються в доларах США та Євро</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#b11693">💵</div><div class="info-list-text">Виплата доходу у валюті облігації</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#b11693">🛍️</div><div class="info-list-text">Покупка за валюту</div></div>
+          <div class="info-list-item"><div class="info-list-icon" style="color:#b11693">📈</div><div class="info-list-text">Продаж у валюті</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- НИЖНЄ МЕНЮ -->
+  <div class="bottom-nav">
+    <a href="index.html" class="nav-item"><div class="nav-icon">💳</div><div class="nav-label">Картки</div></a>
+    <a href="credits.html" class="nav-item"><div class="nav-icon">📊</div><div class="nav-label">Кредити</div></a>
+    <a href="savings.html" class="nav-item active"><div class="nav-icon">🏦</div><div class="nav-label" style="color:#f43f5e;">Накопичення</div></a>
+    <a href="more.html" class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">Ще</div></a>
+  </div>
+
+</div>
+
+<script>
+  function openInfo() {
+    document.getElementById('info-overlay').classList.add('open');
+  }
+
+  function closeInfo() {
+    document.getElementById('info-overlay').classList.remove('open');
+  }
+</script>
+
+</body>
+</html>
