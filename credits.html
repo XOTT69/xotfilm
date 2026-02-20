@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mono - Кредити</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .green-header { background: var(--bg-green); padding: 50px 20px 20px; color: white; position: relative; padding-bottom: 40px;}
+    .credit-limit-title { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .credit-balance { font-size: 46px; font-weight: 800; text-align: center; margin-bottom: 30px; }
+    .white-content { background: var(--bg-white); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; margin-top: -24px; position: relative; z-index: 2; min-height: 500px; }
+    .pch-item { display: flex; justify-content: space-between; background: #fff; padding: 16px; border-radius: 16px; margin-bottom: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="scroll-area">
+    <div class="green-header">
+      <div class="credit-limit-title">Доступний ліміт</div>
+      <div class="credit-balance">150 000 ₴</div>
+    </div>
+    <div class="white-content">
+      <h2 style="margin-bottom: 16px;">Покупка Частинами</h2>
+      <div class="pch-item">
+        <div>Смартфон Apple</div>
+        <div>35 499 ₴</div>
+      </div>
+      <div class="pch-item">
+        <div>Ноутбук для роботи</div>
+        <div>24 800 ₴</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- МЕНЮ -->
+  <div class="bottom-nav">
+    <a href="index.html" class="nav-item"><div class="nav-icon">💳</div><div class="nav-label">Картки</div></a>
+    <a href="credits.html" class="nav-item active"><div class="nav-icon">📊</div><div class="nav-label">Кредити</div></a>
+    <a href="#" class="nav-item"><div class="nav-icon">🏦</div><div class="nav-label">Накопичення</div></a>
+    <a href="#" class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">Ще</div></a>
+  </div>
+</div>
+</body>
+</html>
