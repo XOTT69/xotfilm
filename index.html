@@ -3,85 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monobank Тренажер Операторів</title>
+    <title>Monobank Тренажер 1:1</title>
     <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 20px; background: #000; font-family: -apple-system, system-ui, sans-serif; color: #fff; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .phone { width: 375px; height: 812px; background: #000; border: 20px solid #1a1a1a; border-radius: 50px; box-shadow: 0 30px 80px rgba(0,0,0,0.8); position: relative; overflow: hidden; }
-        .phone::before { content: ''; position: absolute; top: 15px; left: 50%; width: 140px; height: 6px; background: #333; transform: translateX(-50%); border-radius: 3px; }
-        .statusbar { padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 14px; background: rgba(0,0,0,0.5); }
-        .chat { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .message { max-width: 80%; padding: 12px 16px; border-radius: 20px; }
-        .message.client { background: rgba(128,126,255,0.3); align-self: flex-end; }
-        .message.operator { background: rgba(0,255,136,0.2); align-self: flex-start; border-left: 4px solid #00ff88; }
-        .balance { font-size: 32px; font-weight: 700; text-align: center; padding: 20px; background: linear-gradient(135deg, rgba(128,126,255,0.1) 0%, rgba(0,255,136,0.1) 100%); border-radius: 20px; margin: 20px; }
-        .action-btn { background: #00ff88; color: #000; border: none; padding: 16px 32px; border-radius: 28px; font-weight: 700; font-size: 16px; cursor: pointer; width: 100%; margin: 10px 20px; box-shadow: 0 8px 20px rgba(0,255,136,0.3); }
-        .bottom-menu { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); display: flex; padding: 12px 0; }
-        .menu-item { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-size: 12px; transition: all 0.3s; border-radius: 12px 12px 0 0; margin: 0 4px; }
-        .menu-item.active { background: rgba(0,255,136,0.2); color: #00ff88; }
-        .hint { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 12px; font-size: 14px; margin: 10px 20px; border-left: 4px solid #00ff88; }
-        .screen { display: none; height: 100%; }
-        .screen.active { display: flex; flex-direction: column; }
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --accent-purple: rgba(128,126,255,0.8);
+            --accent-green: #00ff88;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg-primary); color: var(--text-primary); font-family: SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .iphone-frame {
+            width: 393px; height: 852px; /* iPhone 14 Pro */
+            background: linear-gradient(145deg, #1c1c1e, #0c0c0e);
+            border-radius: 48px; padding: 28px 24px;
+            box-shadow: 0 35px 100px rgba(0,0,0,0.7);
+            position: relative; overflow: hidden;
+        }
+        .iphone-frame::before {
+            content: ''; position: absolute; top: 32px; left: 50%;
+            width: 168px; height: 6px; background: #333; border-radius: 3px;
+            transform: translateX(-50%);
+        }
+        .status-bar {
+            padding: 12px 0 8px; display: flex; justify-content: space-between;
+            font-size: 15px; font-weight: 400;
+        }
+        .app-content { height: calc(100% - 120px); overflow-y: auto; padding: 0 16px; }
+        .chat-bubble {
+            margin: 8px 0; padding: 14px 18px; border-radius: 24px; max-width: 75%;
+            font-size: 16px; line-height: 1.4; backdrop-filter: blur(10px);
+        }
+        .bubble-client { background: var(--accent-purple); align-self: flex-end; margin-left: auto; }
+        .bubble-operator { background: rgba(0,255,136,0.15); border-left: 4px solid var(--accent-green); }
+        .balance-display {
+            text-align: center; margin: 24px 0; font-size: 40px; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-green));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .block-btn {
+            width: 100%; height: 56px; background: var(--accent-green); color: #000;
+            border: none; border-radius: 28px; font-size: 17px; font-weight: 600;
+            margin: 20px 0; box-shadow: 0 12px 30px rgba(0,255,136,0.4);
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .block-btn:active { transform: scale(0.98); }
+        .bottom-nav {
+            position: fixed; bottom: 28px; left: 24px; right: 24px;
+            background: rgba(10,10,12,0.95); backdrop-filter: blur(40px);
+            display: flex; padding: 12px 0; border-radius: 32px;
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+        }
+        .nav-item {
+            flex: 1; text-align: center; padding: 8px 4px; cursor: pointer;
+            font-size: 12px; font-weight: 500; transition: all 0.3s;
+            border-radius: 20px;
+        }
+        .nav-item.active { background: rgba(0,255,136,0.2); color: var(--accent-green); }
+        .operator-hint {
+            position: absolute; top: 20px; right: 20px; width: 220px;
+            background: rgba(0,0,0,0.9); padding: 16px; border-radius: 16px;
+            font-size: 14px; border-left: 4px solid var(--accent-green);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .screen { display: none; }
+        .screen.active { display: block; height: 100%; }
     </style>
 </head>
 <body>
-    <div class="phone">
-        <!-- Головний екран з чатом -->
-        <div id="main" class="screen active">
-            <div class="statusbar">
-                <span>12:34</span>
-                <span>👤 Іван Іванов</span>
-                <span>🔔</span>
+    <div class="iphone-frame">
+        <!-- Екран 1: Головний з чатом (точно як відео + твій скрін) -->
+        <div id="screen-main" class="screen active">
+            <div class="status-bar">
+                <span>16:25 EET</span>
+                <span>Іван Іванов</span>
+                <span>🔔 0</span>
             </div>
-            <div class="chat">
-                <div class="message client">Клієнт: Потрібно заблокувати кредитку</div>
-                <div class="message operator">Оператор: Дякую за звернення. Щоб заблокувати: перейдіть у "Картки" → виберіть картку → "Заблокувати"</div>
-                <div class="balance">₴ 12 345</div>
-                <div class="hint">Підказка: Запитайте причину блокування. Перевірте, чи не активний Apple Pay.</div>
-                <button class="action-btn" onclick="blockCard()">Заблокувати картку</button>
+            <div class="app-content">
+                <div class="chat-bubble bubble-client">
+                    Потрібно заблокувати кредитку. Як?
+                </div>
+                <div class="chat-bubble bubble-operator">
+                    Дякуємо за звернення.<br>
+                    1. Перейдіть у меню "Картки"<br>
+                    2. Оберіть потрібну картку<br>
+                    3. Натисніть "Заблокувати"
+                </div>
+                <div class="balance-display">₴12 345</div>
+                <button class="block-btn" onclick="goToCards()">Заблокувати картку</button>
             </div>
-            <div class="bottom-menu">
-                <div class="menu-item active" onclick="switchScreen('main')">Головна</div>
-                <div class="menu-item" onclick="switchScreen('cards')">Картки</div>
-                <div class="menu-item" onclick="switchScreen('credits')">Кредити</div>
-                <div class="menu-item" onclick="switchScreen('payments')">Платежі</div>
-                <div class="menu-item" onclick="switchScreen('more')">Ще</div>
-            </div>
-        </div>
-
-        <!-- Екран Картки -->
-        <div id="cards" class="screen">
-            <div class="statusbar"><span onclick="switchScreen('main')">←</span></div>
-            <div class="chat">
-                <h2 style="text-align:center;">Картки</h2>
-                <div class="message">Кредитна картка ***5678<br>Ліміт: ₴100 000<br>Залишок: ₴12 345<br>Пільговий період: 62 дні</div>
-                <div class="hint">Скажіть: "Оберіть картку → Натисніть Заблокувати". Не блокуйте без підтвердження!</div>
-                <button class="action-btn" onclick="alert('Картка заблокована!')">Заблокувати</button>
-            </div>
-            <div class="bottom-menu">
-                <div class="menu-item" onclick="switchScreen('main')">Головна</div>
-                <div class="menu-item active" onclick="switchScreen('cards')">Картки</div>
-                <!-- інші меню... -->
+            <div class="operator-hint">
+                <strong>Інструкція оператора:</strong><br>
+                • Запитайте причину блокування<br>
+                • Перевірте Apple Pay/Google Pay<br>
+                • Оформіть заявку в CRM
             </div>
         </div>
 
-        <!-- Інші екрани аналогічно -->
-        <div id="credits" class="screen"><div class="statusbar"><span onclick="switchScreen('main')">←</span></div><div class="chat"><h2>Кредити</h2><div class="hint">Канікули: перевірте статус військовослужбовця.</div></div></div>
-        <div id="payments" class="screen"><div class="chat"><h2>Платежі</h2></div></div>
-        <div id="more" class="screen"><div class="chat"><h2>Налаштування, Чат</h2></div></div>
+        <!-- Екран 2: Картки (з відео) -->
+        <div id="screen-cards" class="screen">
+            <div class="status-bar">
+                <span onclick="backToMain()">←</span>
+                <span>Картки</span>
+                <span></span>
+            </div>
+            <div class="app-content">
+                <div class="chat-bubble">
+                    <strong>Кредитна картка</strong><br>
+                    **** **** **** 1234<br>
+                    Ліміт: ₴100 000<br>
+                    Довг: ₴87 655<br>
+                    Пільговий: 62 дні ➤
+                </div>
+                <button class="block-btn" onclick="simulateBlock()">Заблокувати</button>
+            </div>
+            <div class="operator-hint">Підтвердіть у клієнта номер картки. Зафіксуйте в заявці.</div>
+        </div>
+
+        <!-- Нижнє меню (точно як у відео) -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="showScreen('main')">Головна</div>
+            <div class="nav-item" onclick="showScreen('cards')">Картки</div>
+            <div class="nav-item" onclick="showScreen('credits')">Кредити</div>
+            <div class="nav-item" onclick="showScreen('payments')">Платежі</div>
+            <div class="nav-item" onclick="showScreen('more')">Ще</div>
+        </div>
     </div>
 
+    <!-- Прості скрипти для переходів -->
     <script>
-        function switchScreen(id) {
+        function showScreen(screen) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            // Оновити активне меню
-            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.getElementById(`screen-${screen}`).classList.add('active');
         }
-        function blockCard() {
-            alert('Імітація: Клієнт перейшов до блокування. Оператор: "Підтвердіть причину"');
-            switchScreen('cards');
+        function goToCards() { showScreen('cards'); }
+        function backToMain() { showScreen('main'); }
+        function simulateBlock() {
+            alert('✅ Картка заблокована!\nОператор: "Заблоковано. Нову можна оформити за 3 хв."');
         }
+        // Додай інші екрани аналогічно
     </script>
 </body>
 </html>
